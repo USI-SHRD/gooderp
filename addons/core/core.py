@@ -28,15 +28,6 @@ class core_category(osv.osv):
     _defaults = {
         'type':lambda self, cr, uid, ctx:ctx.get('type'),
     }
-class core_partner(osv.osv):
-    _name = 'core.partner'
-    _columns = {
-        'name': fields.char(u'名称'),
-        'c_category_id': fields.many2one('core.category',u'客户类别',
-                                       domain=[('type','=','customer')],context={'type':'customer'}),
-        's_category_id': fields.many2one('core.category',u'供应商类别',
-                                       domain=[('type','=','supplier')],context={'type':'supplier'}),
-               }
 class res_company(osv.osv):
     _inherit = 'res.company'
     _columns = {
@@ -46,3 +37,38 @@ class res_company(osv.osv):
         'cost_method':fields.selection(CORE_COST_METHOD,u'存货计价方法'),
         'negtive_quantity':fields.boolean(u'是否检查负库存'),
         }
+class uom(osv.osv):
+    _name = 'uom'
+    _columns = {
+        'name':fields.char(u'名称'),
+                }
+class settle_mode(osv.osv):
+    name = 'settle.mode'
+    _columns = {
+        'name':fields.char(u'名称'),
+                }
+class partner(osv.osv):
+    _name = 'partner'
+    _columns = {
+        'name': fields.char(u'名称'),
+        'c_category_id': fields.many2one('core.category',u'客户类别',
+                                       domain=[('type','=','customer')],context={'type':'customer'}),
+        's_category_id': fields.many2one('core.category',u'供应商类别',
+                                       domain=[('type','=','supplier')],context={'type':'supplier'}),
+               }
+class goods(osv.osv):
+    _name = 'goods'
+    _columns = {
+        'name':fields.char(u'名称'),
+        'uom_id':fields.many2one('core.uom',u'计量单位'),
+                }
+class location(osv.osv):
+    _name = 'location'
+    _columns = {
+        'name':fields.char(u'名称'),
+                }
+class bank_account(osv.osv):
+    _name = 'bank.account'
+    _columns = {
+        'name':fields.char(u'名称'),
+                }
