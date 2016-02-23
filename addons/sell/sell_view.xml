@@ -1,0 +1,125 @@
+<?xml version="1.0"?>
+<openerp>
+    <data>
+    	<!--tree，form视图-->
+    	<record id='sell_order_tree' model='ir.ui.view'>
+        	<field name='name'>sell.order.tree</field>
+        	<field name='model'>sell.order</field>
+        	<field name='arch' type='xml'> 
+            	<tree string='销货订单' >
+            		<field name='name'/>
+            		<field name='partner_id'/>
+            		<field name='staff_id'/>
+            		<field name='date'/>
+            		<field name='delivery_date'/>
+            		<field name='note'/>
+            		<field name='line_ids'/>
+            	</tree>
+        	</field> 
+    	</record>
+    	
+    	<record id='sell_order_form' model='ir.ui.view'>
+        	<field name='name'>sell.order.form</field>
+        	<field name='model'>sell.order</field>
+        	<field name='arch' type='xml'> 
+            	<form string='销货订单' >
+            		<header>
+            			<button name ='submit_button' type = 'object' string = '提交审核' class = 'oe_highlight'/>
+						<field name='state' widget='statusbar' statusbar_visible="draft,approved,done"/>
+            		</header>
+            		<sheet>
+            			<div class="oe_title">
+                         <h1>
+                             <label string="销货订单 " states='draft'/>
+                             <label string="销货单 " attrs="{'invisible': [('state','=','draft')]}"/>
+                             
+                         </h1>
+                     </div>
+            			<group>
+            				<group>
+            					<field name='name' readonly="1"/>
+            					<field name='partner_id' required="1"/>
+            					<field name='staff_id'/>
+            					<field name='type' widget="radio"/>
+            				</group>
+            				<group>
+            					<field name='date'/>
+            					<field name='delivery_date'/>
+            					<field name='note' placeholder="暂无备注消息..."/>            					
+            				</group> 
+            			</group>
+            			<notebook> 
+            				<page string="销货订单行">    		
+            					<field name='line_ids'>
+                 					<tree string='销货订单行' editable='bottom'>
+                 						<field name='goods_id'/>
+                 						<field name='spec'/>
+				 						<field name='uom_id'/>
+				 						<field name='warehouse_id'/>
+                 						<field name='quantity' sum='数量合计' on_change="onchange_price(price, quantity, discount_rate, tax_rate)"/>
+				 						<field name='price'  on_change="onchange_price(price, quantity, discount_rate, tax_rate)"/>
+				 						<field name='discount_rate' on_change="onchange_price(price, quantity, discount_rate, tax_rate)"/>
+                 						<field name='discount_amount' sum='折扣额合计' />
+				 						<field name='amount' sum='金额合计'/>
+				 						<field name='tax_rate' on_change="onchange_price(price, quantity, discount_rate, tax_rate)"/>
+                 						<field name='tax_amount' sum='税额合计'/>
+				 						<field name='tax_amount_total' sum='价税合计'/>
+				 					</tree>
+				 				</field>
+				 			</page>
+				 		</notebook>
+            		</sheet>
+            		<sheet>
+            			<group>
+                    		<field name="benefit_rate" on_change="onchange_benefit_rate(benefit_rate)"/>
+                    		<field name="benefit_amount"/>
+                    		<field name="amount_total"/>
+                    		<field name="create_user"/>
+                		</group>
+                	</sheet>
+                	<div class="oe_chatter">
+                    	<field name="message_follower_ids" widget="mail_followers" groups="base.group_user"/>
+                    	<field name="message_ids" widget="mail_thread"/>
+                	</div>	
+            	</form>
+        	</field> 
+    	</record>
+    	
+    	
+    	<!--action-->
+    	<record id='sell_order_action' model='ir.actions.act_window'>
+        	<field name='name'>销货订单</field>
+        	<field name='res_model'>sell.order</field>
+        	<field name='view_type'>form</field>
+        	<field name='view_mode'>tree,form</field>
+        	<field name="context">{}</field>
+        	<field name='view_id' ref='sell_order_tree'/>
+        	<field name="help" type="html">
+               <p class="oe_view_nocontent_create">
+                	 点击创建销货订单
+               </p>
+             </field>
+    	</record>
+    	
+    	<record id='sell_order_goods_action' model='ir.actions.act_window'>
+        	<field name='name'>销货单</field>
+        	<field name='res_model'>sell.order</field>
+        	<field name='view_type'>form</field>
+        	<field name='view_mode'>tree,form</field>
+        	<field name="context">{}</field>
+        	<!-- <field name='view_id' ref='sell_order_tree'/> -->
+        	<field name="help" type="html">
+               <p class="oe_view_nocontent_create">
+                	 点击创建销货单
+               </p>
+             </field>
+    	</record>
+    	
+    	<!--根菜单-->
+        <menuitem id='sell_menu' name='销货' />
+    	<menuitem id='sell_order_menu_root' name='销货' parent='sell_menu' />
+    	<menuitem id='sell_order_menu' name='销货订单' parent='sell_order_menu_root' action='sell_order_action' sequence='1' />
+    	<menuitem id='sell_order_goods_menu' name='销货单' parent='sell_order_menu_root' action='sell_order_goods_action' sequence='2' />
+
+    </data>
+</openerp>
