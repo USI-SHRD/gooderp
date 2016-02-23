@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<openerp>
-    <data>
-        <menuitem id='warehouse_parent' name='仓库' />
-        <menuitem id='warehouse_root' name='仓库' parent='warehouse_parent' />
-        <menuitem id='warehouse' name='仓库管理' action='warehouse_action' parent='warehouse_root' />
-    </data>
-</openerp>

@@ -25,13 +25,14 @@
     "author": 'ZhengXiang',
     "website": "http://www.osbzr.com",
     "category": "Generic Modules",
-    "depends": ['core'],
+    "depends": ['core', 'decimal_precision'],
     "description": """
     """,
     "data": [
-        'views/assets_backend.xml',
-        'views/warehouse_view.xml',
-        'menus/warehouse_menu.xml'
+        'view/assets_backend.xml',
+        'view/warehouse_view.xml',
+        'action/warehouse_action.xml',
+        'menu/warehouse_menu.xml'
     ],
     'installable': True,
     "active": False,

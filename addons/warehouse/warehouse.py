@@ -5,7 +5,7 @@ from openerp.osv import fields
 
 
 class warehouse(osv.osv):
-    _name = 'warehouse'
+    _inherit = 'warehouse'
 
     _columns = {
         'name': fields.char(u'仓库名称'),
