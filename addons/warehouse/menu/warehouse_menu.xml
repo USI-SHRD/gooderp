@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<openerp>
+    <data>
+        <menuitem id='warehouse_root' name='仓库' />
+
+        <!-- 出入库单据 -->
+        <menuitem id='warehouse_order' name='操作' parent='warehouse_root' sequence='1' />
+        <menuitem id='warehouse_order_out_menu' action='warehouse_order_out_action' name='出库单' parent='warehouse_order' sequence='1' />
+        <menuitem id='warehouse_order_in_menu' action='warehouse_order_in_action' name='入库单' parent='warehouse_order' sequence='2' />
+        <menuitem id='warehouse_order_internal_menu' action='warehouse_order_internal_action' name='调拨单' parent='warehouse_order' sequence='2' />
+
+        <!-- 仓库 -->
+        <menuitem id='warehouse_parent' name='仓库' parent='warehouse_root' sequence='2' />
+        <menuitem id='warehouse_menu' name='仓库管理' action='warehouse_action' parent='warehouse_parent' />
+
+    </data>
+</openerp>
