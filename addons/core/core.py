@@ -62,11 +62,16 @@ class goods(osv.osv):
         'name':fields.char(u'名称'),
         'uom_id':fields.many2one('core.uom',u'计量单位'),
                 }
-class location(osv.osv):
-    _name = 'location'
+class warehouse(osv.osv):
+    _name = 'warehouse'
     _columns = {
         'name':fields.char(u'名称'),
                 }
+class staff(osv.osv):
+    _name = 'staff'
+    _columns = {
+        'name': fields.char(u'名称'),
+                }    
 class bank_account(osv.osv):
     _name = 'bank.account'
     _columns = {
