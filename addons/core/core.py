@@ -60,7 +60,7 @@ class goods(osv.osv):
     _name = 'goods'
     _columns = {
         'name':fields.char(u'名称'),
-        'uom_id':fields.many2one('core.uom',u'计量单位'),
+        'uom_id':fields.many2one('uom',u'计量单位'),
                 }
 class warehouse(osv.osv):
     _name = 'warehouse'
