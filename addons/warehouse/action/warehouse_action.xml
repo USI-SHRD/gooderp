@@ -10,25 +10,25 @@
         </record>
 
         <!-- 出入库单 -->
-       <record id='wh_order_out_action' model='ir.actions.act_window'>
+       <record id='wh_out_action' model='ir.actions.act_window'>
             <field name='name'>出库单</field>
-            <field name='res_model'>wh.order.out</field>
+            <field name='res_model'>wh.out</field>
             <field name='view_mode'>tree,form</field>
-            <field name='view_id' ref='wh_order_out_tree' />
+            <field name='view_id' ref='wh_out_tree' />
         </record>
 
-       <record id='wh_order_in_action' model='ir.actions.act_window'>
+       <record id='wh_in_action' model='ir.actions.act_window'>
             <field name='name'>入库单</field>
-            <field name='res_model'>wh.order.in</field>
+            <field name='res_model'>wh.in</field>
             <field name='view_mode'>tree,form</field>
-            <field name='view_id' ref='wh_order_in_tree' />
+            <field name='view_id' ref='wh_in_tree' />
         </record>
 
-       <record id='wh_order_internal_action' model='ir.actions.act_window'>
+       <record id='wh_internal_action' model='ir.actions.act_window'>
             <field name='name'>出库单</field>
-            <field name='res_model'>wh.order.internal</field>
+            <field name='res_model'>wh.internal</field>
             <field name='view_mode'>tree,form</field>
-            <field name='view_id' ref='wh_order_internal_tree' />
+            <field name='view_id' ref='wh_internal_tree' />
         </record>
 
     </data>
