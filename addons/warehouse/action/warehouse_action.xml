@@ -6,7 +6,7 @@
             <field name='name'>仓库</field>
             <field name='res_model'>warehouse</field>
             <field name='view_mode'>tree</field>
-            <field name='domain'>['|', ('active', '!=', 1), ('active', '=', 1)]</field>
+            <field name='domain'>[('type', '=', 'stock'), '|', ('active', '!=', 1), ('active', '=', 1)]</field>
         </record>
 
         <!-- 出入库单 -->
@@ -16,24 +16,20 @@
             <field name='view_mode'>tree,form</field>
             <field name='view_id' ref='wh_order_out_tree' />
         </record>
-<!-- 
+
        <record id='wh_order_in_action' model='ir.actions.act_window'>
             <field name='name'>入库单</field>
-            <field name='res_model'>wh.order</field>
+            <field name='res_model'>wh.order.in</field>
             <field name='view_mode'>tree,form</field>
-            <field name='domain'>[('type', '=', 'incoming')]</field>
-            <field name='context'>{'default_type': 'incoming'}</field>
             <field name='view_id' ref='wh_order_in_tree' />
         </record>
 
        <record id='wh_order_internal_action' model='ir.actions.act_window'>
             <field name='name'>出库单</field>
-            <field name='res_model'>wh.order</field>
+            <field name='res_model'>wh.order.internal</field>
             <field name='view_mode'>tree,form</field>
-            <field name='domain'>[('type', '=', 'internal')]</field>
-            <field name='context'>{'default_type': 'internal'}</field>
             <field name='view_id' ref='wh_order_internal_tree' />
-        </record> -->
+        </record>
 
     </data>
 </openerp>

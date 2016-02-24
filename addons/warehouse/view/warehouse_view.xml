@@ -22,8 +22,9 @@
                 <tree string='库存调拨' editable='bottom'>
                     <field name='goods_id' required='1' />
                     <field name='uom_id' />
-                    <field name='warehouse_id' />
                     <field name='goods_qty' />
+                    <field name='warehouse_id' string='仓库' />
+                    <field name='warehouse_dest_id' invisible='1' />
                     <field name='price' string='出库单位成本' />
                     <field name='price_subtotal' string='出库成本' />
                     <field name='note' string='备注' />
@@ -38,10 +39,26 @@
                 <tree string='库存调拨' editable='bottom'>
                     <field name='goods_id' required='1' />
                     <field name='uom_id' />
-                    <field name='warehouse_id' />
                     <field name='goods_qty' />
+                    <field name='warehouse_id' invisible='1' />
+                    <field name='warehouse_dest_id' string='仓库' />
                     <field name='price' string='入库单价' />
                     <field name='price_subtotal' string='入库金额' />
+                    <field name='note' string='备注' />
+                </tree>
+            </field>
+        </record>
+
+        <record id='wh_move_line_internal_tree' model='ir.ui.view'>
+            <field name='name'>wh.move.line.internal.tree</field>
+            <field name='model'>wh.move.line</field>
+            <field name='arch' type='xml'>
+                <tree string='库存调拨' editable='bottom'>
+                    <field name='goods_id' required='1' />
+                    <field name='uom_id' />
+                    <field name='goods_qty' />
+                    <field name='warehouse_id' />
+                    <field name='warehouse_dest_id' />
                     <field name='note' string='备注' />
                 </tree>
             </field>
@@ -63,26 +80,29 @@
                         </h1>
                         <group>
                             <group>
-                                <field name='partner_id' />
-                                <field name='date' />
+                                <field name='partner_id' required='1' />
+                                <field name='date' required='1' />
                             </group>
                             <group>
-                                <field name='type' />
+                                <field name='type' required='1' />
                             </group>
                         </group>
 
                         <group string='出库明细'>
-                            <field nolabel='1' name='line_out_ids' context="{'tree_view_ref': 'wh_move_line_out_tree'}" />
+                            <field nolabel='1' name='line_out_ids' context="{
+                                'tree_view_ref': 'warehouse.wh_move_line_out_tree',
+                                'warehouse_dest_type': 'others',
+                            }" />
                         </group>
 
-                        <group cols='4'>
+                        <group >
                             <group>
-                                <field name='create_uid' string='制单人' />
-                                <field name='create_date' string='录单时间' />
+                                <field name='create_uid' string='制单人' readonly='1' />
+                                <field name='create_date' string='录单时间' readonly='1' />
                             </group>
                             <group>
-                                <field name='write_uid' string='最后修改人' />
-                                <field name='write_date' string='最后修改时间' />
+                                <field name='write_uid' string='最后修改人' readonly='1' />
+                                <field name='write_date' string='最后修改时间' readonly='1' />
                             </group>
                         </group>
 
@@ -112,7 +132,56 @@
         </record>
 
         <!-- 入库单 -->
-<!--         <record id='wh_order_in_tree' model='ir.ui.view'>
+        <record id='wh_order_in_form' model='ir.ui.view'>
+            <field name='name'>wh.order.in.form</field>
+            <field name='model'>wh.order.in</field>
+            <field name='arch' type='xml'>
+                <form string='入库单'>
+                    <header>
+                        <button name='approve_order' type='object' string='审核' class='oe_highlight' />
+                    </header>
+                    <sheet>
+                        <h1>
+                            <label string='入库单' />
+                            <field name="name" class="oe_inline" readonly="1"/>
+                        </h1>
+                        <group>
+                            <group>
+                                <field name='partner_id' required='1' />
+                                <field name='date' required='1' />
+                            </group>
+                            <group>
+                                <field name='type' required='1' />
+                            </group>
+                        </group>
+
+                        <group string='入库明细'>
+                            <field nolabel='1' name='line_in_ids' context="{
+                                'tree_view_ref': 'warehouse.wh_move_line_in_tree',
+                                'warehouse_type': 'others',
+                            }" />
+                        </group>
+
+                        <group >
+                            <group>
+                                <field name='create_uid' string='制单人' readonly='1' />
+                                <field name='create_date' string='录单时间' readonly='1' />
+                            </group>
+                            <group>
+                                <field name='write_uid' string='最后修改人' readonly='1' />
+                                <field name='write_date' string='最后修改时间' readonly='1' />
+                            </group>
+                        </group>
+
+                        <group>
+                            <field name='note' nolabel='1' placeholder='备注。。。' />
+                        </group>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <record id='wh_order_in_tree' model='ir.ui.view'>
             <field name='name'>wh.order.in.tree</field>
             <field name='model'>wh.order.in</field>
             <field name='arch' type='xml'>
@@ -127,10 +196,55 @@
                     <field name='note' />
                 </tree>
             </field>
-        </record> -->
+        </record>
 
         <!-- 内部调拨 -->
-<!--         <record id='wh_order_internal_tree' model='ir.ui.view'>
+        <record id='wh_order_internal_form' model='ir.ui.view'>
+            <field name='name'>wh.order.internal.form</field>
+            <field name='model'>wh.order.internal</field>
+            <field name='arch' type='xml'>
+                <form string='移库单'>
+                    <header>
+                        <button name='approve_order' type='object' string='审核' class='oe_highlight' />
+                    </header>
+                    <sheet>
+                        <h1>
+                            <label string='移库单' />
+                            <field name="name" class="oe_inline" readonly="1"/>
+                        </h1>
+                        <group>
+                            <group>
+                                <field name='partner_id' required='1' />
+                            </group>
+                            <group>
+                                <field name='date' required='1' />
+                            </group>
+                        </group>
+
+                        <group string='移库明细'>
+                            <field nolabel='1' name='line_out_ids' context="{'tree_view_ref': 'warehouse.wh_move_line_internal_tree'}" />
+                        </group>
+
+                        <group >
+                            <group>
+                                <field name='create_uid' string='制单人' readonly='1' />
+                                <field name='create_date' string='录单时间' readonly='1' />
+                            </group>
+                            <group>
+                                <field name='write_uid' string='最后修改人' readonly='1' />
+                                <field name='write_date' string='最后修改时间' readonly='1' />
+                            </group>
+                        </group>
+
+                        <group>
+                            <field name='note' nolabel='1' placeholder='备注。。。' />
+                        </group>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <record id='wh_order_internal_tree' model='ir.ui.view'>
             <field name='name'>wh.order.internal.tree</field>
             <field name='model'>wh.order.internal</field>
             <field name='arch' type='xml'>
@@ -143,7 +257,7 @@
                     <field name='note' />
                 </tree>
             </field>
-        </record> -->
+        </record>
 
     </data>
 </openerp>

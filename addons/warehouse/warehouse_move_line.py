@@ -14,6 +14,20 @@ class wh_move_line(osv.osv):
         ('in', u'入库'),
     ]
 
+    def _get_default_warehouse(self, cr, uid, context=None):
+        context = context or {}
+        if context.get('warehouse_type'):
+            return self.pool.get('warehouse').get_warehouse_by_type(cr, uid, context.get('warehouse_type'))
+
+        return False
+
+    def _get_default_warehouse_dest(self, cr, uid, context=None):
+        context = context or {}
+        if context.get('warehouse_dest_type'):
+            return self.pool.get('warehouse').get_warehouse_by_type(cr, uid, context.get('warehouse_dest_type'))
+
+        return False
+
     _columns = {
         'move_id': fields.many2one('wh.move', string=u'移库单'),
         'type': fields.selection(MOVE_LINE_TYPE, u'类型'),
@@ -23,8 +37,8 @@ class wh_move_line(osv.osv):
         'shelf_life': fields.integer(u'保质期(天)'),
         'valid_date': fields.date(u'有效期至'),
         'uom_id': fields.many2one('uom', string=u'单位'),
-        'warehouse_id': fields.many2one('warehouse', string=u'仓库'),
-        'warehouse_dest_id': fields.many2one('warehouse', string=u'目标仓库'),
+        'warehouse_id': fields.many2one('warehouse', string=u'调出仓库'),
+        'warehouse_dest_id': fields.many2one('warehouse', string=u'调入仓库'),
         'goods_qty': fields.float(u'数量', digits_compute=dp.get_precision('Goods Quantity')),
         'price': fields.float(u'单价', digits_compute=dp.get_precision('Accounting')),
         'price_subtotal': fields.float(u'金额', digits_compute=dp.get_precision('Accounting')),
@@ -33,4 +47,6 @@ class wh_move_line(osv.osv):
 
     _defaults = {
         'type': lambda self, cr, uid, ctx=None: ctx.get('type'),
+        'warehouse_id': _get_default_warehouse,
+        'warehouse_dest_id': _get_default_warehouse_dest,
     }
