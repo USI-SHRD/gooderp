@@ -2,6 +2,11 @@
 
 from openerp.osv import fields, osv
 
+READONLY_STATES = {
+        'approved': [('readonly', True)],
+        'confirmed': [('readonly', True)],
+    }
+
 class sell_order(osv.osv):
     _name = 'sell.order'
     _description = "Sell Order"
@@ -9,22 +14,23 @@ class sell_order(osv.osv):
     _order = 'date desc, id desc'
     _columns = {
                 'name': fields.char(u'单据编号',copy=False),
-                'partner_id': fields.many2one('partner',u'客户'),
-                'staff_id': fields.many2one('staff',u'销售员'),
-                'date': fields.date(u'单据日期',copy=False),
-                'delivery_date': fields.date(u'交货日期'),
-                'note': fields.text(u'备注'),
-                'line_ids': fields.one2many('sell.order.line', 'order_id',u'销售订单行'),
-                'benefit_rate': fields.float(u'优惠率(%)'),
-                'benefit_amount': fields.float(u'优惠额'),
-                'amount_total': fields.float(u'优惠后金额'),
-                'create_user': fields.many2one('res.users',u'制单人'),
+                'partner_id': fields.many2one('partner',u'客户',states=READONLY_STATES),
+                'staff_id': fields.many2one('staff',u'销售员',states=READONLY_STATES),
+                'date': fields.date(u'单据日期',copy=False,states=READONLY_STATES),
+                'delivery_date': fields.date(u'交货日期',states=READONLY_STATES),
+                'note': fields.text(u'备注',states=READONLY_STATES),
+                'line_ids': fields.one2many('sell.order.line', 'order_id',u'销售订单行',states=READONLY_STATES),
+                'benefit_rate': fields.float(u'优惠率(%)',states=READONLY_STATES),
+                'benefit_amount': fields.float(u'优惠额',states=READONLY_STATES),
+                'amount_total': fields.float(u'优惠后金额',states=READONLY_STATES),
                 'type': fields.selection([('sell',u'销货'),('return',u'退货')],u'订单类型'),
                 'state': fields.selection([
-                                          ('draft', u'未审批'),
-                                          ('approved', u'已审批'),
-                                          ('done', u'发货完成'),
-                                           ], u'状态', readonly=True, copy=False)
+                                          ('draft', u'未审核'),
+                                          ('approved', u'已审核'),
+                                          ('confirmed', u'销售发货单'),
+                                          ('cancel', u'已取消'),
+                                           ], u'状态', readonly=True, copy=False),                
+                'validator_id': fields.many2one('res.users', u'审核人', copy=False),
                 }
     _defaults = {
                  'date': fields.datetime.now,
@@ -43,12 +49,7 @@ class sell_order(osv.osv):
         context = dict(context or {}, mail_create_nolog=True)
         order =  super(sell_order, self).create(cr, uid, vals, context=context)
         self.message_post(cr, uid, [order], body=u'销售单已创建', context=context)
-        return order
-    
-    def submit_button(self, cr, uid, ids, context=None):
-        '''对销货订单的提交审核按钮，还需修改'''
-        self.write(cr, uid, ids, {'state':'approved'}, context=context)
-        return  
+        return order      
     
     def onchange_benefit_rate(self, cr, uid, ids, benefit_rate, context=None):
          '''当优惠率改变时，改变优惠金额和优惠后金额'''
@@ -61,6 +62,24 @@ class sell_order(osv.osv):
                           'amount_total': total - benefit_amount,
                           }
                  }  
+    
+    def submit_order_button(self, cr, uid, ids, context=None):
+        '''销货订单审核，还需修改'''
+        assert len(ids) == 1, u'这个选项应该只适用于一个id'
+        self.write(cr, uid, ids, {'state':'approved','validator_id':uid}, context=context)
+        return True   
+
+    def sell_refuse_button(self, cr, uid, ids, context=None):
+        '''反审核销货订单'''
+        assert len(ids) == 1, u'这个选项应该只适用于一个id'
+        self.write(cr, uid, ids, {'state': 'draft'}, context=context)
+        return True
+
+    def sell_delivery_button(self, cr, uid, ids, context=None):
+        '''由销货订单生成的销售发货单，未完成'''
+        assert len(ids) == 1, u'这个选项应该只适用于一个id'
+        self.write(cr, uid, ids, {'state': 'confirmed'}, context=context)
+        return True
     
         
 class sell_order_line(osv.osv):
@@ -79,7 +98,8 @@ class sell_order_line(osv.osv):
                 'amount': fields.float(u'金额'),
                 'tax_rate': fields.float(u'税率(%)'),
                 'tax_amount': fields.float(u'税额'),
-                'tax_amount_total': fields.float(u'价税合计'),                
+                'tax_amount_total': fields.float(u'价税合计'), 
+                'line_note': fields.text(u'备注'),               
                 }
     
     def onchange_price(self, cr, uid, ids, price, quantity, discount_rate, tax_rate, context=None):
@@ -95,3 +115,47 @@ class sell_order_line(osv.osv):
                          'tax_amount_total': amount + tax_amt,
                          }
                 }
+
+
+class sell_delivery(osv.osv):
+    _inherit = 'wh.move'
+    _name = 'sell.delivery'
+    _description = u'销售发货单'
+    _order = 'date desc, id desc'
+    _columns = {
+                'staff_id': fields.many2one('staff',u'销售员'),
+                'benefit_rate': fields.float(u'优惠率(%)'),
+                'benefit_amount': fields.float(u'优惠额'),
+                'amount_total': fields.float(u'优惠后金额'),
+                'partner_cost': fields.float(u'客户承担费用'),
+                'receivable': fields.float(u'本次收款'),
+                'account': fields.many2one('bank.account',u'结算账户'),
+                'payable': fields.float(u'本次欠款'),
+                'total_payable': fields.float(u'总欠款'), 
+                'state': fields.selection([
+                                          ('draft', u'发货单草稿'),
+                                          ('approved', u'已审核发货'),
+                                          ('cancel', u'已取消'),
+                                           ], u'状态', readonly=True, copy=False),
+                'validator_id': fields.many2one('res.users', u'审核人', copy=False),                
+                }
+    
+    def submit_delivery_button(self, cr, uid, ids, context=None):
+        '''销售发货单审核，还需修改'''
+        assert len(ids) == 1, u'这个选项应该只适用于一个id'
+        self.write(cr, uid, ids, {'state':'approved','validator_id':uid}, context=context)
+        return True 
+    
+class sell_delivery_line(osv.osv):
+    _inherit = 'wh.move.line'
+    _description = u'销售发货单行'
+    _columns = {
+                'spec': fields.char(u'属性'),                
+                'discount_rate': fields.float(u'折扣率(%)'),
+                'discount_amount': fields.float(u'折扣额'),
+                'tax_rate': fields.float(u'税率(%)'),
+                'tax_amount': fields.float(u'税额'),
+                'tax_amount_total': fields.float(u'价税合计'),
+                'origin': fields.char(u'源单据'),               
+                }
+    
