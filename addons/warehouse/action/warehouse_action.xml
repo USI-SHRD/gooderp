@@ -10,32 +10,30 @@
         </record>
 
         <!-- 出入库单 -->
-       <record id='warehouse_order_out_action' model='ir.actions.act_window'>
+       <record id='wh_order_out_action' model='ir.actions.act_window'>
             <field name='name'>出库单</field>
-            <field name='res_model'>warehouse.order</field>
+            <field name='res_model'>wh.order.out</field>
             <field name='view_mode'>tree,form</field>
-            <field name='domain'>[('type', '=', 'outgoing')]</field>
-            <field name='context'>{'default_type': 'outgoing'}</field>
-            <field name='view_id' ref='warehouse_order_out_tree' />
+            <field name='view_id' ref='wh_order_out_tree' />
         </record>
-
-       <record id='warehouse_order_in_action' model='ir.actions.act_window'>
+<!-- 
+       <record id='wh_order_in_action' model='ir.actions.act_window'>
             <field name='name'>入库单</field>
-            <field name='res_model'>warehouse.order</field>
+            <field name='res_model'>wh.order</field>
             <field name='view_mode'>tree,form</field>
             <field name='domain'>[('type', '=', 'incoming')]</field>
             <field name='context'>{'default_type': 'incoming'}</field>
-            <field name='view_id' ref='warehouse_order_in_tree' />
+            <field name='view_id' ref='wh_order_in_tree' />
         </record>
 
-       <record id='warehouse_order_internal_action' model='ir.actions.act_window'>
+       <record id='wh_order_internal_action' model='ir.actions.act_window'>
             <field name='name'>出库单</field>
-            <field name='res_model'>warehouse.order</field>
+            <field name='res_model'>wh.order</field>
             <field name='view_mode'>tree,form</field>
             <field name='domain'>[('type', '=', 'internal')]</field>
             <field name='context'>{'default_type': 'internal'}</field>
-            <field name='view_id' ref='warehouse_order_internal_tree' />
-        </record>
+            <field name='view_id' ref='wh_order_internal_tree' />
+        </record> -->
 
     </data>
 </openerp>
