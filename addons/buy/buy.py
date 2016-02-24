@@ -22,16 +22,14 @@
 from openerp.osv import fields, osv
 
 BUY_ORDER_STATES = [
-        ('draft', '购货订单'),
-        ('confirmed', '待审核'),
+        ('draft', '草稿'),
         ('approved', '已审核'),
-        ('done', '已完成'),
+        ('confirmed', '购货单'),
         ('cancel', '已取消')
     ]
 READONLY_STATES = {
-        'confirmed': [('readonly', True)],
         'approved': [('readonly', True)],
-        'done': [('readonly', True)]
+        'confirmed': [('readonly', True)],
     }
 class buy_order(osv.osv):
     _name = "buy.order"
@@ -41,37 +39,33 @@ class buy_order(osv.osv):
 
     _columns = {
         'partner_id': fields.many2one('partner', u'供应商', required=True, states=READONLY_STATES),
-        'date': fields.date(u'单据日期', states={'confirmed':[('readonly',True)],
-                                                             'approved':[('readonly',True)]},
-                                 select=True, help="描述了询价单转换成采购订单的日期，默认是订单创建日期。", copy=False),
-        'planned_date':fields.date(u'交货日期', select=True, help=u"订单的预计交货日期"),
+        'date': fields.date(u'单据日期', states=READONLY_STATES,
+                select=True, help=u"描述了询价单转换成采购订单的日期，默认是订单创建日期。", copy=False),
+        'planned_date':fields.date(u'交货日期', states=READONLY_STATES, select=True, help=u"订单的预计交货日期"),
         'name': fields.char(u'单据编号', required=True, select=True, copy=False,
-                            help=u"采购订单的唯一编号，当创建时它会自动生成有序编号。"),
+                help=u"采购订单的唯一编号，当创建时它会自动生成有序编号。"),
         'type': fields.selection([('buy','购货'),('return','退货')], u'类型'),
-        'line_ids': fields.one2many('buy.order.line', 'order_id', u'采购订单行',
-                                      states={'approved':[('readonly',True)],
-                                              'done':[('readonly',True)]}),
-        'notes': fields.text(u'备注'),
-        'discount_rate': fields.float(u'优惠率(%)'),
-        'discount_amount': fields.float(u'优惠金额'),
-        'amount': fields.float(u'优惠后金额'),
-        'validator_id': fields.many2one('res.users', u'审核人', readonly=True, copy=False),
+        'line_ids': fields.one2many('buy.order.line', 'order_id', u'采购订单行', states=READONLY_STATES, copy=True),
+        'notes': fields.text(u'备注', states=READONLY_STATES),
+        'discount_rate': fields.float(u'优惠率(%)', states=READONLY_STATES),
+        'discount_amount': fields.float(u'优惠金额', states=READONLY_STATES),
+        'amount': fields.float(u'优惠后金额', states=READONLY_STATES,),
+        'validator_id': fields.many2one('res.users', u'审核人', copy=False),
         'state': fields.selection(BUY_ORDER_STATES, u'状态', readonly=True, help=u"采购订单的状态", select=True, copy=False),     
     }
     _defaults = {
         'date': fields.date.context_today,
         'planned_date': fields.date.context_today,
-        'state': 'draft',
-        'name': lambda obj, cr, uid, context: '/',
+        'name': lambda self, cr, uid, context: \
+                        self.pool.get('ir.sequence').get(cr, uid, 'buy.order', context=context),
         'type': 'buy',
+        'state': 'draft',
     }
     _sql_constraints = [
         ('name_uniq', 'unique(name)', '采购订单号必须唯一!'),
     ]
 
     def create(self, cr, uid, vals, context=None):
-        if vals.get('name','/')=='/':
-            vals['name'] = self.pool.get('ir.sequence').get(cr, uid, 'buy.order', context=context) or '/'
         context = dict(context or {}, mail_create_nolog=True)
         order =  super(buy_order, self).create(cr, uid, vals, context=context)
         self.message_post(cr, uid, [order], body=u'购货订单已创建', context=context)
@@ -88,6 +82,24 @@ class buy_order(osv.osv):
                          'amount': total - discount_amount,
                          }
                 }
+
+    def buy_approve(self, cr, uid, ids, context=None):
+        '''审核购货订单'''
+        assert(len(ids) == 1), 'This option should only be used for a single id at a time'
+        self.write(cr, uid, ids, {'state': 'approved', 'validator_id': uid})
+        return True
+
+    def buy_refuse(self, cr, uid, ids, context=None):
+        '''反审核购货订单'''
+        assert(len(ids) == 1), 'This option should only be used for a single id at a time'
+        self.write(cr, uid, ids, {'state': 'draft'})
+        return True
+
+    def buy_generate_order(self, cr, uid, ids, context=None):
+        '''由购货订单生成购货单'''
+        assert(len(ids) == 1), 'This option should only be used for a single id at a time'
+        self.write(cr, uid, ids, {'state': 'confirmed'})
+        return True
 
 class buy_order_line(osv.osv):
     _name = 'buy.order.line'
