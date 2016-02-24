@@ -20,12 +20,12 @@
 ##############################################################################
 
 from openerp.osv import fields, osv
+# from warehouse import wh_move, wh_move_line
 
 BUY_ORDER_STATES = [
         ('draft', '草稿'),
         ('approved', '已审核'),
         ('confirmed', '购货单'),
-        ('cancel', '已取消')
     ]
 READONLY_STATES = {
         'approved': [('readonly', True)],
@@ -120,6 +120,76 @@ class buy_order_line(osv.osv):
         'note': fields.char(u'备注'),
         'origin': fields.char(u'源单号'),
         'order_id': fields.many2one('buy.order', u'订单编号', select=True, required=True, ondelete='cascade'),
+    }
+
+    def onchange_price(self, cr, uid, ids, price, quantity, discount_rate, tax_rate, context=None):
+        '''当订单行的数量、购货单价、折扣率、税率改变时，改变折扣额、金额、税额、价税合计'''
+        amt = price * quantity
+        discount = amt * discount_rate * 0.01
+        amount = amt - discount
+        tax_amt = amount * tax_rate * 0.01
+        return {'value':{
+                         'discount': discount,
+                         'amount': amount,
+                         'tax_amount': tax_amt,
+                         'subtotal': amount + tax_amt,
+                         }
+                }
+
+class buy_receipt(osv.osv):
+    _name = "buy.receipt"
+    _inherits = {'wh.move': 'buy_move_id'}
+    _inherit = ['mail.thread']
+    _description = u"采购入库单"
+
+    _columns = {
+        'buy_move_id': fields.many2one('wh.move', u'入库单'),
+        'discount_rate': fields.float(u'优惠率(%)', states=READONLY_STATES),
+        'discount_amount': fields.float(u'优惠金额', states=READONLY_STATES),
+        'amount': fields.float(u'优惠后金额', states=READONLY_STATES),
+        'payment': fields.float(u'本次付款', states=READONLY_STATES),
+        'bank_account_id': fields.many2one('bank.account', u'结算账户'),
+        'debt': fields.float(u'本次欠款'),
+        'total_cost': fields.float(u'采购费用'),
+        'state': fields.selection(BUY_ORDER_STATES, u'状态', readonly=True, help=u"采购入库单的状态", select=True, copy=False),
+    }
+    _defaults ={
+        'date': fields.date.context_today,
+        'name': lambda self, cr, uid, context: \
+                        self.pool.get('ir.sequence').get(cr, uid, 'buy.order', context=context),
+        'bank_account_id': '(空)',
+    }
+
+    def create(self, cr, uid, vals, context=None):
+        context = dict(context or {}, mail_create_nolog=True)
+        receipt =  super(buy_receipt, self).create(cr, uid, vals, context=context)
+        self.message_post(cr, uid, [receipt], body=u'采购入库单已创建', context=context)
+        return receipt
+
+    def onchange_discount_rate(self, cr, uid, ids, discount_rate, context=None):
+        '''当优惠率改变时，改变优惠金额和优惠后金额'''
+        total = 0
+        for line in self.browse(cr, uid, ids, context=context).line_in_ids:
+            total += line.subtotal
+        discount_amount = total * discount_rate * 0.01
+        return {'value':{
+                         'discount_amount': discount_amount,
+                         'amount': total - discount_amount,
+                         }
+                }
+
+class buy_receipt_line(osv.osv):
+    _inherit = 'wh.move.line'
+    _description = u"采购入库明细"
+    _columns = {
+        'spec': fields.char(u'属性'),
+        'discount_rate': fields.float(u'折扣率%'),
+        'discount': fields.float(u'折扣额'),
+        'amount': fields.float(u'购货金额'),
+        'tax_rate': fields.float(u'税率(%)'),
+        'tax_amount': fields.float(u'税额'),
+        'subtotal': fields.float(u'价税合计'),
+        'share_cost': fields.float(u'采购费用'),
     }
 
     def onchange_price(self, cr, uid, ids, price, quantity, discount_rate, tax_rate, context=None):
