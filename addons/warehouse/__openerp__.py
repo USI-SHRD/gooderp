@@ -32,7 +32,9 @@
         'view/assets_backend.xml',
         'view/warehouse_view.xml',
         'action/warehouse_action.xml',
-        'menu/warehouse_menu.xml'
+        'menu/warehouse_menu.xml',
+        'data/warehouse_data.xml',
+        'data/sequence.xml',
     ],
     'installable': True,
     "active": False,
