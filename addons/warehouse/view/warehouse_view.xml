@@ -20,13 +20,13 @@
             <field name='model'>wh.move.line</field>
             <field name='arch' type='xml'>
                 <tree string='库存调拨' editable='bottom'>
-                    <field name='goods_id' required='1' />
-                    <field name='uom_id' />
-                    <field name='goods_qty' on_change='onchange_price(goods_qty, price)' />
-                    <field name='warehouse_id' string='仓库' />
+                    <field name='goods_id' required='1' on_change='onchange_goods_by_out(goods_id, warehouse_id, goods_qty)' />
+                    <field name='uom_id' required='1' />
+                    <field name='goods_qty' on_change='onchange_price_by_out(goods_id, warehouse_id, goods_qty)' />
+                    <field name='warehouse_id' string='仓库' required='1' />
                     <field name='warehouse_dest_id' invisible='1' />
-                    <field name='price' string='出库单位成本' on_change='onchange_price(goods_qty, price)' />
-                    <field name='subtotal' string='出库成本' />
+                    <field name='price' string='出库单位成本' readonly='1' />
+                    <field name='subtotal' string='出库成本' readonly='1' />
                     <field name='note' string='备注' />
                 </tree>
             </field>
@@ -37,13 +37,13 @@
             <field name='model'>wh.move.line</field>
             <field name='arch' type='xml'>
                 <tree string='库存调拨' editable='bottom'>
-                    <field name='goods_id' required='1' />
-                    <field name='uom_id' />
-                    <field name='goods_qty' />
+                    <field name='goods_id' required='1' on_change='onchange_goods_by_in(goods_id)' />
+                    <field name='uom_id' required='1' />
+                    <field name='goods_qty' on_change='onchange_price_by_in(goods_qty, price)' />
                     <field name='warehouse_id' invisible='1' />
-                    <field name='warehouse_dest_id' string='仓库' />
-                    <field name='price' string='入库单价' />
-                    <field name='subtotal' string='入库金额' />
+                    <field name='warehouse_dest_id' string='仓库' required='1' />
+                    <field name='price' string='入库单价' on_change='onchange_price_by_in(goods_qty, price)' />
+                    <field name='subtotal' string='入库金额' readonly='1' />
                     <field name='note' string='备注' />
                 </tree>
             </field>
@@ -54,11 +54,11 @@
             <field name='model'>wh.move.line</field>
             <field name='arch' type='xml'>
                 <tree string='库存调拨' editable='bottom'>
-                    <field name='goods_id' required='1' />
-                    <field name='uom_id' />
+                    <field name='goods_id' required='1' on_change='onchange_goods_by_internal(goods_id)' />
+                    <field name='uom_id' required='1' />
                     <field name='goods_qty' />
-                    <field name='warehouse_id' />
-                    <field name='warehouse_dest_id' />
+                    <field name='warehouse_id' required='1' />
+                    <field name='warehouse_dest_id' required='1' />
                     <field name='note' string='备注' />
                 </tree>
             </field>

@@ -45,6 +45,10 @@ class wh_out(osv.osv):
         'amount_total': fields.function(_get_amount_total, type='float', string=u'合计金额', digits_compute=dp.get_precision('Accounting')),
     }
 
+    _defaults = {
+        'type': 'others',
+    }
+
     def create(self, cr, uid, vals, context=None):
         if vals.get('name', '/') == '/':
             vals.update({'name': self.pool.get('ir.sequence').get(cr, uid, self._name, context=context) or '/'})
@@ -89,6 +93,10 @@ class wh_in(osv.osv):
         'move_id': fields.many2one('wh.move', u'移库单', required=True, index=True, ondelete='cascade'),
         'type': fields.selection(TYPE_SELECTION, u'业务类别'),
         'amount_total': fields.function(_get_amount_total, type='float', string=u'合计金额', digits_compute=dp.get_precision('Accounting')),
+    }
+
+    _defaults = {
+       'type': 'others',
     }
 
     def create(self, cr, uid, vals, context=None):
