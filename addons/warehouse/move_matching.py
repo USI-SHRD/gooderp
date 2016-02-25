@@ -70,6 +70,13 @@ class wh_move_line(osv.osv):
 
         return super(wh_move_line, self).prev_action_done(cr, uid, ids, context=context)
 
+    def prev_action_cancel(self, cr, uid, ids, context=None):
+        for line in self.browse(cr, uid, ids, context=context):
+            if line.qty_remaining != line.goods_qty:
+                raise osv.except_osv(u'错误', u'当前的入库已经被其他出库匹配，请先取消相关的出库')
+
+        return super(wh_move_line, self).prev_action_cancel(self, cr, uid, ids, context=context)
+
     _columns = {
         'qty_remaining': fields.function(_get_qty_remaining, type='float', string='剩余数量',
             store={
