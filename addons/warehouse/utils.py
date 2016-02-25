@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 
 
+def safe_division(divisor, dividend):
+    return dividend != 0 and divisor / dividend or 0
+
+
 def inherits_after(res_back=True, collect_before_res=False):
     def wrapper(method):
         def func(self, cr, uid, ids, *args, **kwargs):
