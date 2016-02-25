@@ -13,5 +13,10 @@
         <menuitem id='warehouse_parent' name='仓库' parent='warehouse_root' sequence='2' />
         <menuitem id='warehouse_menu' name='仓库管理' action='warehouse_action' parent='warehouse_parent' />
 
+        <!-- 设置 -->
+        <menuitem id='warehouse_setting' name='设置' parent='warehouse_root' sequence='100' />
+        <menuitem id='wh_move_matching_menu' action='wh_move_matching_action' parent='warehouse_setting' sequence='1' />
+        <menuitem id='wh_move_line_menu' action='wh_move_line_action' parent='warehouse_setting' sequence='2' />
+
     </data>
 </openerp>

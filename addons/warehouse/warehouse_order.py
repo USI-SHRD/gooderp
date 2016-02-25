@@ -2,7 +2,7 @@
 
 from openerp.osv import osv
 from openerp.osv import fields
-from inherits_wrapper import inherits
+from utils import inherits, inherits_after
 import openerp.addons.decimal_precision as dp
 
 
@@ -25,6 +25,10 @@ class wh_out(osv.osv):
     @inherits()
     def cancel_approved_order(self, cr, uid, ids, context=None):
         return True
+
+    @inherits_after()
+    def unlink(self, cr, uid, ids, context=None):
+        return super(wh_out, self).unlink(cr, uid, ids, context=context)
 
     def get_line(self, cr, uid, ids, context=None):
         for order in self.browse(cr, uid, ids, context=context):
@@ -76,6 +80,10 @@ class wh_in(osv.osv):
     def cancel_approved_order(self, cr, uid, ids, context=None):
         return True
 
+    @inherits_after()
+    def unlink(self, cr, uid, ids, context=None):
+        return super(wh_in, self).unlink(cr, uid, ids, context=context)
+
     def get_line(self, cr, uid, ids, context=None):
         for order in self.browse(cr, uid, ids, context=context):
             yield order, order.line_in_ids
@@ -103,7 +111,7 @@ class wh_in(osv.osv):
         if vals.get('name', '/') == '/':
             vals.update({'name': self.pool.get('ir.sequence').get(cr, uid, self._name, context=context) or '/'})
 
-        return super(wh_out, self).create(cr, uid, vals, context=context)
+        return super(wh_in, self).create(cr, uid, vals, context=context)
 
 
 class wh_internal(osv.osv):
@@ -120,6 +128,10 @@ class wh_internal(osv.osv):
     @inherits()
     def cancel_approved_order(self, cr, uid, ids, context=None):
         return True
+
+    @inherits_after()
+    def unlink(self, cr, uid, ids, context=None):
+        return super(wh_internal, self).unlink(cr, uid, ids, context=context)
 
     def get_line(self, cr, uid, ids, context=None):
         for order in self.browse(cr, uid, ids, context=context):
@@ -143,4 +155,4 @@ class wh_internal(osv.osv):
         if vals.get('name', '/') == '/':
             vals.update({'name': self.pool.get('ir.sequence').get(cr, uid, self._name, context=context) or '/'})
 
-        return super(wh_out, self).create(cr, uid, vals, context=context)
+        return super(wh_internal, self).create(cr, uid, vals, context=context)
