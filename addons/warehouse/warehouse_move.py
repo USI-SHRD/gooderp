@@ -7,6 +7,13 @@ from openerp.osv import fields
 class wh_move(osv.osv):
     _name = 'wh.move'
 
+    def unlink(self, cr, uid, ids, context=None):
+        for move in self.browse(cr, uid, ids, context=context):
+            if move.state == 'done':
+                raise osv.except_osv(u'错误', u'不可以删除已经完成的单据')
+
+        return super(wh_move, self).unlink(cr, uid, ids, context=context)
+
     def approve_order(self, cr, uid, ids, context=None):
         for order in self.browse(cr, uid, ids, context=context):
             order.line_out_ids.action_done()
@@ -41,8 +48,8 @@ class wh_move(osv.osv):
         'date': fields.date(u'单据日期', copy=False),
         'approve_uid': fields.many2one('res.users', u'审核人', copy=False),
         'approve_date': fields.datetime(u'审核日期', copy=False),
-        'line_out_ids': fields.one2many('wh.move.line', 'move_id', u'明细', domain=[('type', '=', 'out')], context={'type': 'out'}),
-        'line_in_ids': fields.one2many('wh.move.line', 'move_id', u'明细', domain=[('type', '=', 'in')], context={'type': 'in'}),
+        'line_out_ids': fields.one2many('wh.move.line', 'move_id', u'明细', domain=[('type', '=', 'out')], context={'type': 'out'}, copy=True),
+        'line_in_ids': fields.one2many('wh.move.line', 'move_id', u'明细', domain=[('type', '=', 'in')], context={'type': 'in'}, copy=True),
         'note': fields.text(u'备注'),
     }
 

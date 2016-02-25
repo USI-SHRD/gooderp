@@ -16,6 +16,29 @@ class warehouse(osv.osv):
         ('others', u'其他'),
     ]
 
+    # 使用SQL来取得指定仓库情况下的库存数量
+    def get_stock_qty(self, cr, uid, ids, context=None):
+        if isinstance(ids, (long, int)):
+            ids = [ids]
+
+        cr.execute('''
+            SELECT sum(line.qty_remaining) as qty,
+                   sum(line.qty_remaining * (line.subtotal / line.goods_qty)) as subtotal,
+                   goods.name as goods
+            FROM wh_move_line line
+            LEFT JOIN warehouse wh ON line.warehouse_dest_id = wh.id
+            LEFT JOIN goods goods ON line.goods_id = goods.id
+
+            WHERE line.qty_remaining > 0
+              AND wh.type = 'stock'
+              AND line.state = 'done'
+              AND line.warehouse_dest_id = %s
+
+            GROUP BY wh.name, goods.name
+        ''' % (ids[0], ))
+
+        return cr.dictfetchall()
+
     def name_search(self, cr, user, name, args=None, operator='ilike', context=None, limit=100):
         args = args or []
         if not filter(lambda _type: _type[0] == 'type', args):
