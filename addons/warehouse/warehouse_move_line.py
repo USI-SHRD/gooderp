@@ -63,6 +63,7 @@ class wh_move_line(osv.osv):
 
     def _get_default_warehouse(self, cr, uid, context=None):
         context = context or {}
+        print '---------_get_default_warehouse------------', context
         if context.get('warehouse_type'):
             return self.pool.get('warehouse').get_warehouse_by_type(cr, uid, context.get('warehouse_type'))
 
@@ -70,6 +71,7 @@ class wh_move_line(osv.osv):
 
     def _get_default_warehouse_dest(self, cr, uid, context=None):
         context = context or {}
+        print '---------_get_default_warehouse_dest------------', context
         if context.get('warehouse_dest_type'):
             return self.pool.get('warehouse').get_warehouse_by_type(cr, uid, context.get('warehouse_dest_type'))
 
@@ -146,14 +148,14 @@ class wh_move_line(osv.osv):
         'date': fields.datetime(u'完成日期', copy=False),
         'type': fields.selection(MOVE_LINE_TYPE, u'类型'),
         'state': fields.selection(MOVE_LINE_STATE, u'状态', copy=False),
-        'goods_id': fields.many2one('goods', string=u'产品'),
+        'goods_id': fields.many2one('goods', string=u'产品', required=True),
         'lot_id': fields.one2many('wh.lot', 'line_id', string=u'批次', copy=False),
         'production_date': fields.date(u'生产日期'),
         'shelf_life': fields.integer(u'保质期(天)'),
         'valid_date': fields.date(u'有效期至'),
         'uom_id': fields.many2one('uom', string=u'单位'),
-        'warehouse_id': fields.many2one('warehouse', string=u'调出仓库'),
-        'warehouse_dest_id': fields.many2one('warehouse', string=u'调入仓库'),
+        'warehouse_id': fields.many2one('warehouse', string=u'调出仓库', required=True),
+        'warehouse_dest_id': fields.many2one('warehouse', string=u'调入仓库', required=True),
         'goods_qty': fields.float(u'数量', digits_compute=dp.get_precision('Goods Quantity')),
         'price': fields.float(u'单价', digits_compute=dp.get_precision('Accounting')),
         'subtotal': fields.float(u'金额', digits_compute=dp.get_precision('Accounting')),
