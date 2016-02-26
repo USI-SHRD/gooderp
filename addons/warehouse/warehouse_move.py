@@ -14,8 +14,12 @@ class wh_move(osv.osv):
 
         return super(wh_move, self).unlink(cr, uid, ids, context=context)
 
+    def prev_approve_order(self, cr, uid, ids, context=None):
+        pass
+
     def approve_order(self, cr, uid, ids, context=None):
         for order in self.browse(cr, uid, ids, context=context):
+            order.prev_approve_order()
             order.line_out_ids.action_done()
             order.line_in_ids.action_done()
 
@@ -25,8 +29,12 @@ class wh_move(osv.osv):
                 'state': 'done',
             })
 
+    def prev_cancel_approved_order(self, cr, uid, ids, context=None):
+        pass
+
     def cancel_approved_order(self, cr, uid, ids, context=None):
         for order in self.browse(cr, uid, ids, context=context):
+            order.prev_cancel_approved_order()
             order.line_out_ids.action_cancel()
             order.line_in_ids.action_cancel()
 
