@@ -54,6 +54,8 @@ class wh_out(osv.osv):
     }
 
     def create(self, cr, uid, vals, context=None):
+        print '------------dsf--------'
+        print vals
         if vals.get('name', '/') == '/':
             vals.update({'name': self.pool.get('ir.sequence').get(cr, uid, self._name, context=context) or '/'})
 

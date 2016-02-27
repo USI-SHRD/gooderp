@@ -43,5 +43,17 @@
             <field name='prefix'>WH/INT/%(y)s%(month)s</field>
         </record>
 
+        <record id='wh_inventory_sequence_type' model='ir.sequence.type'>
+            <field name='name'>盘点单</field>
+            <field name='code'>wh.inventory</field>
+        </record>
+
+        <record id='wh_inventory_sequence' model='ir.sequence'>
+            <field name='name'>盘点单</field>
+            <field name='code'>wh.inventory</field>
+            <field eval='4' name='padding'/>
+            <field name='prefix'>INV/%(y)s%(month)s</field>
+        </record>
+
     </data>
 </openerp>
