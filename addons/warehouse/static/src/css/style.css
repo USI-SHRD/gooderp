@@ -8,3 +8,8 @@ span.selection-clickable-mode, span.boolean-clickable-mode {
 span.selection-clickable-mode[data-value=disable], span.boolean-clickable-mode[data-value=false]{
     background-color: #ADADAD;
 }
+
+.openerp .oe_form_editable
+.oe_form .oe_form_field_date input {
+    width: 200px;
+}

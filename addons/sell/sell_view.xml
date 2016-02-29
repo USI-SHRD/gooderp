@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <openerp>
     <data>
-    	<!--tree，form视图-->
+    	<!--销货订单tree视图-->
     	<record id='sell_order_tree' model='ir.ui.view'>
         	<field name='name'>sell.order.tree</field>
         	<field name='model'>sell.order</field>
@@ -18,34 +18,34 @@
         	</field> 
     	</record>
     	
+    	<!--销货订单form视图-->
     	<record id='sell_order_form' model='ir.ui.view'>
         	<field name='name'>sell.order.form</field>
         	<field name='model'>sell.order</field>
         	<field name='arch' type='xml'> 
             	<form string='销货订单' >
             		<header>
-            			<button name ='submit_button' type = 'object' string = '提交审核' class = 'oe_highlight'/>
-						<field name='state' widget='statusbar' statusbar_visible="draft,approved,done"/>
+            			<button name ='submit_order_button' states="draft" type = 'object' string = '审核' class = 'oe_highlight'/>
+            			<button name="sell_refuse_button" states="approved" string="反审核" type="object" class="oe_highlight"/>
+            			<button name="sell_delivery_button" states="approved" string="生成销售发货单" type="object" class="oe_highlight"/>
+						<field name='state' widget='statusbar' statusbar_visible="draft,approved,confirmed"/>
             		</header>
             		<sheet>
             			<div class="oe_title">
                          <h1>
-                             <label string="销货订单 " states='draft'/>
-                             <label string="销货单 " attrs="{'invisible': [('state','=','draft')]}"/>
-                             
+                             <label string="销货订单 " states='draft'/>                             
                          </h1>
                      </div>
             			<group>
             				<group>
             					<field name='name' readonly="1"/>
             					<field name='partner_id' required="1"/>
-            					<field name='staff_id'/>
-            					<field name='type' widget="radio"/>
+            					<field name='staff_id'/>            					
             				</group>
             				<group>
             					<field name='date'/>
             					<field name='delivery_date'/>
-            					<field name='note' placeholder="暂无备注消息..."/>            					
+            					<field name='type' widget="radio"/>           					
             				</group> 
             			</group>
             			<notebook> 
@@ -64,19 +64,28 @@
 				 						<field name='tax_rate' on_change="onchange_price(price, quantity, discount_rate, tax_rate)"/>
                  						<field name='tax_amount' sum='税额合计'/>
 				 						<field name='tax_amount_total' sum='价税合计'/>
+				 						<field name='line_note'/>
 				 					</tree>
-				 				</field>
+				 				</field>				 				
+				 				<group>
+                        			<group col="6" colspan="6">
+                            			<field name="benefit_rate" on_change="onchange_benefit_rate(benefit_rate)"/>
+                            			<field name="benefit_amount"/>
+                            			<field name="amount_total"/>
+                        			</group>
+                    			</group>
+                    			<group>
+                        			<group col="8" colspan="2">
+                            			<field name="create_uid" readonly="1" string="制单人"/>
+                            			<field name="validator_id" readonly="1"/>
+                            			<field name="create_date" readonly="1" string="录单时间"/>
+                            			<field name="write_date" readonly="1" string="最后修改时间"/>
+                        			</group>
+                    			</group>
+                    			<field name="note" placeholder="暂无备注信息"/>				 				
 				 			</page>
 				 		</notebook>
             		</sheet>
-            		<sheet>
-            			<group>
-                    		<field name="benefit_rate" on_change="onchange_benefit_rate(benefit_rate)"/>
-                    		<field name="benefit_amount"/>
-                    		<field name="amount_total"/>
-                    		<field name="create_user"/>
-                		</group>
-                	</sheet>
                 	<div class="oe_chatter">
                     	<field name="message_follower_ids" widget="mail_followers" groups="base.group_user"/>
                     	<field name="message_ids" widget="mail_thread"/>
@@ -85,8 +94,100 @@
         	</field> 
     	</record>
     	
+    	<!--销售订单发货单tree视图-->
+    	<record id='sell_delivery_tree' model='ir.ui.view'>
+        	<field name='name'>sell.delivery.tree</field>
+        	<field name='model'>sell.delivery</field>
+        	<field name='arch' type='xml'> 
+            	<tree string='销售订单发货单' >
+            		<field name='name'/>
+            		<field name='partner_id'/>
+            		<field name='staff_id'/>
+            		<field name='date'/>
+            		<field name='note'/>
+            		<field name='line_out_ids'/>
+            	</tree>
+        	</field> 
+    	</record>
     	
-    	<!--action-->
+    	<!--销售发货单form视图-->
+    	<record id='sell_delivery_form' model='ir.ui.view'>
+        	<field name='name'>sell.delivery.form</field>
+        	<field name='model'>sell.delivery</field>
+        	<field name='arch' type='xml'> 
+            	<form string='销售发货单' >
+            		<header>
+            			<button name ='submit_delivery_button' states="draft" type = 'object' string = '审核发货单' class = 'oe_highlight'/>
+						<field name='state' widget='statusbar' statusbar_visible="draft,approved"/>
+            		</header>
+            		<sheet>
+            			<div class="oe_title">
+                         <h1>
+                             <label string="销售发货单 " states='draft'/>                             
+                         </h1>
+                     </div>
+            			<group>
+            				<group>
+            					<field name='name' readonly="1"/>
+            					<field name='partner_id' required="1"/>            					            					
+            				</group>
+            				<group>
+            					<field name='staff_id'/>
+            					<field name='date'/>          					
+            				</group> 
+            			</group>
+            			<notebook> 
+            				<page string="销售发货单行">    		
+            					<field name='line_out_ids'>
+                 					<tree string='销售发货单行' editable='bottom'>
+                 						<field name='goods_id'/>
+                 						<field name='spec'/>
+				 						<field name='uom_id'/>
+				 						<field name='warehouse_id'/>
+                 						<field name='goods_qty' sum='数量合计'/>
+				 						<field name='price'/>
+				 						<field name='discount_rate'/>
+                 						<field name='discount_amount' sum='折扣额合计' />
+				 						<field name='price_subtotal' sum='金额合计'/>
+				 						<field name='tax_rate'/>
+                 						<field name='tax_amount' sum='税额合计'/>
+				 						<field name='tax_amount_total' sum='价税合计'/>
+				 						<field name='note'/>
+				 						<field name='origin'/>
+				 					</tree>
+				 				</field>		 				
+				 				<group>
+                        			<group>
+                            			<field name="benefit_rate"/>
+                            			<field name="receivable"/>
+                            			<field name="create_uid" readonly="1" string="制单人"/>
+                        			</group>
+                        			<group>
+                        				<field name="benefit_amount"/>
+                        				<field name="account"/>
+                        				<field name="validator_id" readonly="1"/>
+                        			</group>
+                        			<group>
+                        				<field name="amount_total"/>
+                        				<field name="payable"/>
+                        				<field name="create_date" readonly="1" string="录单时间"/>
+                        			</group>
+                        			<group>
+                        				<field name="partner_cost"/>
+                        				<field name="total_payable"/>
+                        				<field name="write_date" readonly="1" string="最后修改时间"/>
+                        			</group>
+                    			</group>                    		
+                    			<field name="note" placeholder="暂无备注信息"/>				 				
+				 			</page>
+				 		</notebook>
+            		</sheet>
+            	</form>
+        	</field> 
+    	</record>
+    	
+    	
+    	<!--销货订单，销售发货单action-->
     	<record id='sell_order_action' model='ir.actions.act_window'>
         	<field name='name'>销货订单</field>
         	<field name='res_model'>sell.order</field>
@@ -101,16 +202,16 @@
              </field>
     	</record>
     	
-    	<record id='sell_order_goods_action' model='ir.actions.act_window'>
-        	<field name='name'>销货单</field>
-        	<field name='res_model'>sell.order</field>
+    	<record id='sell_delivery_action' model='ir.actions.act_window'>
+        	<field name='name'>销售发货单</field>
+        	<field name='res_model'>sell.delivery</field>
         	<field name='view_type'>form</field>
         	<field name='view_mode'>tree,form</field>
         	<field name="context">{}</field>
-        	<!-- <field name='view_id' ref='sell_order_tree'/> -->
+        	<field name='view_id' ref='sell_delivery_tree'/>
         	<field name="help" type="html">
                <p class="oe_view_nocontent_create">
-                	 点击创建销货单
+                	 点击创建销售发货单
                </p>
              </field>
     	</record>
@@ -119,7 +220,7 @@
         <menuitem id='sell_menu' name='销货' />
     	<menuitem id='sell_order_menu_root' name='销货' parent='sell_menu' />
     	<menuitem id='sell_order_menu' name='销货订单' parent='sell_order_menu_root' action='sell_order_action' sequence='1' />
-    	<menuitem id='sell_order_goods_menu' name='销货单' parent='sell_order_menu_root' action='sell_order_goods_action' sequence='2' />
+    	<menuitem id='sell_delivery_menu' name='销售发货单' parent='sell_order_menu_root' action='sell_delivery_action' sequence='2' />
 
     </data>
 </openerp>
