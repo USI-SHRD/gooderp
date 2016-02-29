@@ -186,6 +186,7 @@ class wh_inventory(osv.osv):
         'in_id': fields.many2one('wh.in', u'盘盈单据', copy=False),
         'state': fields.selection(INVENTORY_STATE, u'状态', copy=False),
         'line_ids': fields.one2many('wh.inventory.line', 'inventory_id', u'明细', copy=False),
+        'note': fields.text(u'备注'),
     }
 
     _defaults = {

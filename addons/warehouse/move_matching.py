@@ -75,6 +75,9 @@ class wh_move_line(osv.osv):
             if line.qty_remaining != line.goods_qty:
                 raise osv.except_osv(u'错误', u'当前的入库已经被其他出库匹配，请先取消相关的出库')
 
+            line.matching_in_ids.unlink()
+            line.matching_out_ids.unlink()
+
         return super(wh_move_line, self).prev_action_cancel(cr, uid, ids, context=context)
 
     _columns = {
