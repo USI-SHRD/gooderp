@@ -45,7 +45,10 @@ openerp.web_menu_create = function(instance) {
             return parent.menu_dm.add(parent.rpc("/web/action/load", { action_id: action_id }))
                 .then(function (result) {
                     result.view_mode = 'form';
-                    result.views = [[false, 'form']]
+                    // result.views = [[false, 'form']]
+                    var form_views = _.find(result.views, function(view) { return view[1] == 'form'})
+                    result.views = (_.isUndefined(form_views))? [[false, 'form']] : [form_views];
+
                     return parent.action_mutex.exec(function() {
                         var completed = $.Deferred();
                         $.when(parent.action_manager.do_action(result, {
