@@ -2,7 +2,7 @@
 
 from openerp.osv import osv
 from openerp.osv import fields
-from utils import inherits, inherits_after
+from utils import inherits, inherits_after, create_name
 import openerp.addons.decimal_precision as dp
 
 
@@ -24,6 +24,10 @@ class wh_assembly(osv.osv):
     @inherits_after()
     def unlink(self, cr, uid, ids, context=None):
         return super(wh_assembly, self).unlink(cr, uid, ids, context=context)
+
+    @create_name
+    def create(self, cr, uid, vals, context=None):
+        return super(wh_assembly, self).create(cr, uid, vals, context=context)
 
     _columns = {
         'move_id': fields.many2one('wh.move', u'移库单', required=True, index=True, ondelete='cascade'),
@@ -49,6 +53,10 @@ class wh_disassembly(osv.osv):
     @inherits_after()
     def unlink(self, cr, uid, ids, context=None):
         return super(wh_disassembly, self).unlink(cr, uid, ids, context=context)
+
+    @create_name
+    def create(self, cr, uid, vals, context=None):
+        return super(wh_disassembly, self).create(cr, uid, vals, context=context)
 
     _columns = {
         'move_id': fields.many2one('wh.move', u'移库单', required=True, index=True, ondelete='cascade'),

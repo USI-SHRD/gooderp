@@ -5,6 +5,17 @@ def safe_division(divisor, dividend):
     return dividend != 0 and divisor / dividend or 0
 
 
+def create_name(method):
+    def func(self, cr, uid, vals, context=None):
+        if vals.get('name', '/') == '/':
+            vals.update({'name': self.pool.get('ir.sequence').get(
+                cr, uid, self._name, context=context) or '/'})
+
+        return method(self, cr, uid, vals, context=context)
+
+    return func
+
+
 def inherits_after(res_back=True, collect_before_res=False):
     def wrapper(method):
         def func(self, cr, uid, ids, *args, **kwargs):

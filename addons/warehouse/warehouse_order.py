@@ -2,7 +2,7 @@
 
 from openerp.osv import osv
 from openerp.osv import fields
-from utils import inherits, inherits_after
+from utils import inherits, inherits_after, create_name
 import openerp.addons.decimal_precision as dp
 
 
@@ -43,6 +43,10 @@ class wh_out(osv.osv):
 
         return res
 
+    @create_name
+    def create(self, cr, uid, vals, context=None):
+        return super(wh_out, self).create(cr, uid, vals, context=context)
+
     _columns = {
         'move_id': fields.many2one('wh.move', u'移库单', required=True, index=True, ondelete='cascade'),
         'type': fields.selection(TYPE_SELECTION, u'业务类别'),
@@ -52,14 +56,6 @@ class wh_out(osv.osv):
     _defaults = {
         'type': 'others',
     }
-
-    def create(self, cr, uid, vals, context=None):
-        print '------------dsf--------'
-        print vals
-        if vals.get('name', '/') == '/':
-            vals.update({'name': self.pool.get('ir.sequence').get(cr, uid, self._name, context=context) or '/'})
-
-        return super(wh_out, self).create(cr, uid, vals, context=context)
 
 
 class wh_in(osv.osv):
@@ -99,6 +95,10 @@ class wh_in(osv.osv):
 
         return res
 
+    @create_name
+    def create(self, cr, uid, vals, context=None):
+        return super(wh_in, self).create(cr, uid, vals, context=context)
+
     _columns = {
         'move_id': fields.many2one('wh.move', u'移库单', required=True, index=True, ondelete='cascade'),
         'type': fields.selection(TYPE_SELECTION, u'业务类别'),
@@ -108,12 +108,6 @@ class wh_in(osv.osv):
     _defaults = {
        'type': 'others',
     }
-
-    def create(self, cr, uid, vals, context=None):
-        if vals.get('name', '/') == '/':
-            vals.update({'name': self.pool.get('ir.sequence').get(cr, uid, self._name, context=context) or '/'})
-
-        return super(wh_in, self).create(cr, uid, vals, context=context)
 
 
 class wh_internal(osv.osv):
@@ -148,13 +142,11 @@ class wh_internal(osv.osv):
 
         return res
 
+    @create_name
+    def create(self, cr, uid, vals, context=None):
+        return super(wh_internal, self).create(cr, uid, vals, context=context)
+
     _columns = {
         'move_id': fields.many2one('wh.move', u'移库单', required=True, index=True, ondelete='cascade'),
         'amount_total': fields.function(_get_amount_total, type='float', string=u'合计金额', digits_compute=dp.get_precision('Accounting')),
     }
-
-    def create(self, cr, uid, vals, context=None):
-        if vals.get('name', '/') == '/':
-            vals.update({'name': self.pool.get('ir.sequence').get(cr, uid, self._name, context=context) or '/'})
-
-        return super(wh_internal, self).create(cr, uid, vals, context=context)
