@@ -12,5 +12,4 @@ class ir_ui_menu(osv.osv):
     }
 
     def load_create_tag(self, cr, uid, ids, context=None):
-        return ids
         return [menu.id for menu in self.browse(cr, uid, ids, context=context) if menu.create_tag]
