@@ -27,7 +27,7 @@
         </record>
 
        <record id='wh_internal_action' model='ir.actions.act_window'>
-            <field name='name'>出库单</field>
+            <field name='name'>移库单</field>
             <field name='res_model'>wh.internal</field>
             <field name='view_mode'>tree,form</field>
             <field name='view_id' ref='wh_internal_tree' />
