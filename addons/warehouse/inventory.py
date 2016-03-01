@@ -160,11 +160,33 @@ class wh_inventory(osv.osv):
         cr.execute(sql_text % extra_text)
         return cr.dictfetchall()
 
+    def get_zero_inventory(self, cr, uid, ids, goods_ids, context=None):
+        goods_obj = self.pool.get('goods')
+        zero_goods_ids = goods_obj.search(cr, uid, [], context=context)
+
+        res = []
+        temp_warehouse_ids = self.pool.get('warehouse').search(cr, uid,
+            [('type', '=', 'stock')], limit=1, context=context)
+        for goods in goods_obj.browse(cr, uid, [goods_id for goods_id in
+                zero_goods_ids if goods_id not in goods_ids], context=context):
+            res.append({
+                    # 'warehouse_id': goods.main_warehouse_id.id, TODO
+                    'warehouse_id': temp_warehouse_ids[0],
+                    'goods_id': goods.id,
+                    'uom_id': goods.uom_id.id,
+                    'qty': 0,
+                })
+
+        return res
+
     def query_inventory(self, cr, uid, ids, context=None):
         line_obj = self.pool.get('wh.inventory.line')
         for inventory in self.browse(cr, uid, ids, context=context):
             inventory.delete_line(context=context)
             line_ids = inventory.get_line_detail(context=context)
+
+            if inventory.zero_inventory:
+                line_ids.extend(inventory.get_zero_inventory([line.get('goods_id') for line in line_ids]))
 
             for line in line_ids:
                 line_obj.create(cr, uid, {
