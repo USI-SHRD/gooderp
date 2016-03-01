@@ -120,14 +120,18 @@
                             }" attrs="{'readonly': [('state', '!=', 'draft')]}" />
                         </group>
 
-                        <group >
-                            <group>
+                        <group col='6'>
+                            <group colspan='2'>
                                 <field name='create_uid' string='制单人' readonly='1' />
                                 <field name='create_date' string='录单时间' readonly='1' />
                             </group>
-                            <group>
+                            <group colspan='2'>
                                 <field name='write_uid' string='最后修改人' readonly='1' />
                                 <field name='write_date' string='最后修改时间' readonly='1' />
+                            </group>
+                            <group colspan='2'>
+                                <field name='approve_uid' readonly='1' />
+                                <field name='approve_date' readonly='1' />
                             </group>
                         </group>
 
@@ -188,14 +192,18 @@
                             }" attrs="{'readonly': [('state', '!=', 'draft')]}" />
                         </group>
 
-                        <group >
-                            <group>
+                        <group col='6'>
+                            <group colspan='2'>
                                 <field name='create_uid' string='制单人' readonly='1' />
                                 <field name='create_date' string='录单时间' readonly='1' />
                             </group>
-                            <group>
+                            <group colspan='2'>
                                 <field name='write_uid' string='最后修改人' readonly='1' />
                                 <field name='write_date' string='最后修改时间' readonly='1' />
+                            </group>
+                            <group colspan='2'>
+                                <field name='approve_uid' readonly='1' />
+                                <field name='approve_date' readonly='1' />
                             </group>
                         </group>
 
@@ -252,14 +260,18 @@
                             <field nolabel='1' name='line_out_ids' context="{'tree_view_ref': 'warehouse.wh_move_line_internal_tree'}" attrs="{'readonly': [('state', '!=', 'draft')]}" />
                         </group>
 
-                        <group >
-                            <group>
+                        <group col='6'>
+                            <group colspan='2'>
                                 <field name='create_uid' string='制单人' readonly='1' />
                                 <field name='create_date' string='录单时间' readonly='1' />
                             </group>
-                            <group>
+                            <group colspan='2'>
                                 <field name='write_uid' string='最后修改人' readonly='1' />
                                 <field name='write_date' string='最后修改时间' readonly='1' />
+                            </group>
+                            <group colspan='2'>
+                                <field name='approve_uid' readonly='1' />
+                                <field name='approve_date' readonly='1' />
                             </group>
                         </group>
 

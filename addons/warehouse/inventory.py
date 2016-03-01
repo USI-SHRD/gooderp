@@ -2,6 +2,7 @@
 
 from openerp.osv import osv
 from openerp.osv import fields
+from utils import create_name
 import openerp.addons.decimal_precision as dp
 
 
@@ -18,6 +19,10 @@ class wh_inventory(osv.osv):
     def requery_inventory(self, cr, uid, ids, context=None):
         self.delete_confirmed_wh(cr, uid, ids, context=context)
         return self.write(cr, uid, ids, {'state': 'query'}, context=context)
+
+    @create_name
+    def create(self, cr, uid, vals, context=None):
+        return super(wh_inventory, self).create(cr, uid, vals, context=context)
 
     def unlink(self, cr, uid, ids, context=None):
         for inventory in self.browse(cr, uid, ids, context=context):
@@ -186,6 +191,7 @@ class wh_inventory(osv.osv):
         'in_id': fields.many2one('wh.in', u'盘盈单据', copy=False),
         'state': fields.selection(INVENTORY_STATE, u'状态', copy=False),
         'line_ids': fields.one2many('wh.inventory.line', 'inventory_id', u'明细', copy=False),
+        'note': fields.text(u'备注'),
     }
 
     _defaults = {
