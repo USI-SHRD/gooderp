@@ -20,7 +20,6 @@
 ##############################################################################
 
 from openerp.osv import fields, osv
-# from warehouse import wh_move, wh_move_line
 
 BUY_ORDER_STATES = [
         ('draft', '草稿'),
@@ -96,10 +95,58 @@ class buy_order(osv.osv):
         return True
 
     def buy_generate_order(self, cr, uid, ids, context=None):
-        '''由购货订单生成购货单'''
+        '''由购货订单生成采购入库单'''
         assert(len(ids) == 1), 'This option should only be used for a single id at a time'
+
+        res = []
+        dict = []
+        ret = []
+        order = self.browse(cr, uid, ids, context=context)
+
+        for line in order.line_ids:
+            dict.append({
+                'goods_id': line.goods_id.id,
+                'spec': line.spec,
+                'uom_id': line.uom_id.id,
+                'warehouse_id': line.warehouse_id.id,
+                'goods_qty': line.quantity,
+                'price': line.price,
+                'discount_rate': line.discount_rate,
+                'discount': line.discount,
+                'amount': line.amount,
+                'tax_rate': line.tax_rate,
+                'tax_amount': line.tax_amount,
+                'subtotal': line.subtotal or 0.0,
+                'note': line.note or '',
+                'share_cost': 0,
+            })
+
+        for i in range(len(dict)):
+            ret.append((0, 0, dict[i]))
+        receipt_id = self.pool.get('buy.receipt').create(cr, uid, {
+                            'partner_id': order.partner_id.id,
+                            'line_in_ids': ret,
+                            'discount_rate': order.discount_rate,
+                            'discount_amount': order.discount_amount,
+                            'amount': order.amount,
+#                             'debt':,
+#                             'total_cost':,
+                            'state': 'draft',
+                        }, context=context)
+        res.append(receipt_id)
+        view_id = self.pool.get('ir.model.data').xmlid_to_res_id(cr, uid, 'gooderp.buy_receipt_form')
         self.write(cr, uid, ids, {'state': 'confirmed'})
-        return True
+        return {
+            'name': u'采购入库单',
+            'view_type': 'form',
+            'view_mode': 'form',
+            'view_id': False,
+            'views': [(view_id, 'form')],
+            'res_model': 'buy.receipt',
+            'type': 'ir.actions.act_window',
+            'domain':[('id','in',res)],
+#             'target': 'self',
+        }
 
 class buy_order_line(osv.osv):
     _name = 'buy.order.line'
@@ -156,7 +203,7 @@ class buy_receipt(osv.osv):
     _defaults ={
         'date': fields.date.context_today,
         'name': lambda self, cr, uid, context: \
-                        self.pool.get('ir.sequence').get(cr, uid, 'buy.order', context=context),
+                        self.pool.get('ir.sequence').get(cr, uid, 'buy.receipt', context=context),
         'bank_account_id': '(空)',
     }
 
