@@ -20,7 +20,7 @@
 ##############################################################################
 
 {
-    "name": "Warehouse Management",
+    "name": "GOODERP Warehouse Management",
     "version": "0.1",
     "author": 'ZhengXiang',
     "website": "http://www.osbzr.com",
