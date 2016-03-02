@@ -8,3 +8,4 @@ import inventory
 import production
 import warehouse_move_line
 import move_matching
+import wizard

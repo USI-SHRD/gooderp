@@ -63,7 +63,6 @@ class wh_move_line(osv.osv):
 
     def _get_default_warehouse(self, cr, uid, context=None):
         context = context or {}
-        print '---------_get_default_warehouse------------', context
         if context.get('warehouse_type'):
             return self.pool.get('warehouse').get_warehouse_by_type(cr, uid, context.get('warehouse_type'))
 
@@ -71,7 +70,6 @@ class wh_move_line(osv.osv):
 
     def _get_default_warehouse_dest(self, cr, uid, context=None):
         context = context or {}
-        print '---------_get_default_warehouse_dest------------', context
         if context.get('warehouse_dest_type'):
             return self.pool.get('warehouse').get_warehouse_by_type(cr, uid, context.get('warehouse_dest_type'))
 
