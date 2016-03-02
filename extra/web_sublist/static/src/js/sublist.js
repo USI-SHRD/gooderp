@@ -12,7 +12,8 @@ openerp.web_sublist = function(instance) {
                         return _.isArray(value)? value[1]: value;
                     });
 
-                return QWeb.render('web_sublist.sublist', {'values': _.compact(field_value)}).trim();
+                // 通过without去除掉undefined的值
+                return QWeb.render('web_sublist.sublist', {'values': _.without(field_value, undefined)}).trim();
             } else {
                 return this._super(row_data, options);
             };

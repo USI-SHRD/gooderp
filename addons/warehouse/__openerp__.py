@@ -29,6 +29,7 @@
     "description": """
     """,
     "data": [
+        'wizard/save_bom_view.xml',
         'view/assets_backend.xml',
         'view/warehouse_view.xml',
         'view/inventory_view.xml',
