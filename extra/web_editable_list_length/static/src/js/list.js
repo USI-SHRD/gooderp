@@ -3,12 +3,16 @@ openerp.web_editable_list_length = function(instance) {
         cancel_edition: function(ids) {
             var options_length = this.get_options_length();
             if (options_length) {
-                if (this.records.length - 1 < options_length) {
+
+                var to_delete = this.records.find(function (r) {
+                    return !r.get('id');
+                });
+
+                var need_to_delete = to_delete? 1 : 0;
+                if (this.records.length - need_to_delete < options_length) {
                     this.show_add_button('fast');
                 };
             };
-
-            console.warn('length', this.records.length);
 
             return this._super.apply(this, arguments);
         },

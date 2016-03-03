@@ -31,6 +31,10 @@
     'depends': [
         'web',
     ],
+    'description':
+    """
+        直接在菜单上面显示新建按钮的快速通道，需要将菜单记录中的create_tag设置位True
+    """,
     'data': [
         'views/assets_backend.xml',
     ],

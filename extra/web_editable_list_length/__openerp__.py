@@ -31,6 +31,10 @@
     'depends': [
         'web',
     ],
+    'description':
+    """
+        form视图中，直接在one2many字段上定义options="{'list_length': 1}"
+    """,
     'data': [
         'views/assets_backend.xml',
     ],

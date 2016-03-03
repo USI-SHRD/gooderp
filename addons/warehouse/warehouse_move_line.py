@@ -90,12 +90,12 @@ class wh_move_line(osv.osv):
         if goods_id and warehouse_id and goods_qty:
             # price = self.pool.get('goods').get_cost_by_warehouse(
                 # cr, uid, goods_id, warehouse_id, goods_id, context=context)
-            price = 0
+            subtotal, price = self.pool.get('goods').get_suggested_cost_by_warehouse(
+                cr, uid, goods_id, warehouse_id, goods_qty, context=context)
 
             return {'value': {
                 'price': price,
-                'subtotal': self._get_subtotal_util(
-                    cr, uid, goods_qty, price, context=context)
+                'subtotal': subtotal,
             }}
 
         return {}
@@ -128,11 +128,12 @@ class wh_move_line(osv.osv):
             res.update({'uom_id': goods.uom_id.id})
 
             if warehouse_id and goods_qty:
-                # price = goods.get_cost_by_warehouse(warehouse_id, goods_qty, context=context)
-                price = 0
+                subtotal, price = self.pool.get('goods').get_suggested_cost_by_warehouse(
+                    cr, uid, goods_id, warehouse_id, goods_qty, context=context)
+
                 res.update({
                         'price': price,
-                        'subtotal': self._get_subtotal_util(cr, uid, goods_qty, price, context=context)
+                        'subtotal': subtotal,
                     })
 
         return {'value': res}

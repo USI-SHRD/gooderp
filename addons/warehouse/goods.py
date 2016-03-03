@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from openerp.osv import osv
+from utils import safe_division
 
 
 class goods(osv.osv):
@@ -28,11 +29,27 @@ class goods(osv.osv):
 
         return cr.dictfetchall()
 
+    def get_cost(self, cr, uid, goods_id, context=None):
+        if isinstance(goods_id, (list, tuple)):
+            goods_id = goods_id[0]
+
+        # goods = self.browse(cr, uid, goods_id, context=context)
+        # TODO 产品上需要一个字段来记录成本
+        return 1
+
     def get_suggested_cost_by_warehouse(self, cr, uid, ids, warehouse_id, qty, context=None):
+        if isinstance(ids, (long, int)):
+            ids = [ids]
+
         records, subtotal = self.get_matching_records(cr, uid,
             ids, warehouse_id, qty, ignore_stock=True, context=context)
 
-        return subtotal, sum(record.get('qty') for record in records)
+        matching_qty = sum(record.get('qty') for record in records)
+        if matching_qty:
+            return subtotal, safe_division(subtotal, matching_qty)
+        else:
+            cost = self.get_cost(cr, uid, ids[0], context=context)
+            return cost * qty, cost
 
     def is_using_matching(self, cr, uid, ids, context=None):
         return True

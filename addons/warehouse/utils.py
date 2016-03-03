@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import functools
 
 
 def safe_division(divisor, dividend):
@@ -6,6 +7,7 @@ def safe_division(divisor, dividend):
 
 
 def create_name(method):
+    @functools.wraps(method)
     def func(self, cr, uid, vals, context=None):
         if vals.get('name', '/') == '/':
             vals.update({'name': self.pool.get('ir.sequence').get(
@@ -18,6 +20,7 @@ def create_name(method):
 
 def inherits_after(res_back=True, collect_before_res=False):
     def wrapper(method):
+        @functools.wraps(method)
         def func(self, cr, uid, ids, *args, **kwargs):
             if isinstance(ids, (long, int)):
                 ids = [ids]
@@ -43,6 +46,7 @@ def inherits_after(res_back=True, collect_before_res=False):
 
 def inherits(res_back=True):
     def wrapper(method):
+        @functools.wraps(method)
         def func(self, cr, uid, ids, *args, **kwargs):
             if isinstance(ids, (long, int)):
                 ids = [ids]
