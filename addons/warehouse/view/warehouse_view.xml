@@ -65,7 +65,7 @@
                     <field name='warehouse_dest_id' string='仓库' required='1' />
                     <field name='qty_remaining' /> <!-- TODO 技术字段 -->
                     <field name='price' string='入库单价' on_change='onchange_price_by_in(goods_qty, price)' />
-                    <field name='subtotal' string='入库金额' readonly='1' sum='1' />
+                    <field name='subtotal' string='入库金额' sum='1' on_change='onchange_subtotal_by_in(subtotal, goods_qty)' />
                     <field name='note' string='备注' />
                 </tree>
             </field>

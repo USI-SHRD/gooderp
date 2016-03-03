@@ -105,6 +105,20 @@ class wh_move_line(osv.osv):
             return {'value': {'subtotal': self._get_subtotal_util(
                 cr, uid, goods_qty, price, context=context)}}
 
+        return {'value': {'subtotal': 0}}
+
+    def onchange_subtotal_by_in(self, cr, uid, ids, subtotal, goods_qty, context=None):
+        if subtotal and goods_qty:
+            return {'value': {'price': safe_division(subtotal, goods_qty)}}
+
+        return {}
+
+    def onchange_goods_by_in(self, cr, uid, ids, goods_id, context=None):
+        # TODO 需要计算保质期
+        if goods_id:
+            goods = self.pool.get('goods').browse(cr, uid, goods_id, context=context)
+            return {'value': {'uom_id': goods.uom_id.id}}
+
         return {}
 
     def onchange_goods_by_out(self, cr, uid, ids, goods_id, warehouse_id, goods_qty, context=None):
@@ -123,14 +137,6 @@ class wh_move_line(osv.osv):
 
         return {'value': res}
 
-    def onchange_goods_by_in(self, cr, uid, ids, goods_id, context=None):
-        # TODO 需要计算保质期
-        if goods_id:
-            goods = self.pool.get('goods').browse(cr, uid, goods_id, context=context)
-            return {'value': {'uom_id': goods.uom_id.id}}
-
-        return {}
-
     def onchange_goods_by_internal(self, cr, uid, ids, goods_id, context=None):
         return self.onchange_goods_by_in(cr, uid, ids, goods_id, context=context)
 
@@ -146,7 +152,7 @@ class wh_move_line(osv.osv):
         'date': fields.datetime(u'完成日期', copy=False),
         'type': fields.selection(MOVE_LINE_TYPE, u'类型'),
         'state': fields.selection(MOVE_LINE_STATE, u'状态', copy=False),
-        'goods_id': fields.many2one('goods', string=u'产品', required=True),
+        'goods_id': fields.many2one('goods', string=u'产品', required=True, index=True),
         'lot_id': fields.one2many('wh.lot', 'line_id', string=u'批次', copy=False),
         'production_date': fields.date(u'生产日期'),
         'shelf_life': fields.integer(u'保质期(天)'),
