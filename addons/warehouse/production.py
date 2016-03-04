@@ -4,6 +4,7 @@ from openerp.osv import osv
 from openerp.osv import fields
 from utils import inherits, inherits_after, create_name, safe_division
 import openerp.addons.decimal_precision as dp
+from itertools import islice
 
 
 class wh_assembly(osv.osv):
@@ -13,26 +14,51 @@ class wh_assembly(osv.osv):
         'wh.move': 'move_id',
     }
 
+    def apportion_cost(self, cr, uid, ids, subtotal, context=None):
+        for assembly in self.browse(cr, uid, ids, context=context):
+            if not assembly.line_in_ids:
+                continue
+
+            collects = []
+            for parent in assembly.line_in_ids:
+                collects.append((parent, parent.goods_id.get_suggested_cost_by_warehouse(
+                    parent.warehouse_dest_id.id, parent.goods_qty)[0]))
+
+            amount_total, collect_parent_subtotal = sum(collect[1] for collect in collects), 0
+            for parent, amount in islice(collects, 0, len(collects) - 1):
+                parent_subtotal = safe_division(amount, amount_total) * subtotal
+                collect_parent_subtotal += parent_subtotal
+                parent.write({
+                        'price': safe_division(parent_subtotal, parent.goods_qty),
+                        'subtotal': parent_subtotal,
+                    })
+
+            # 最后一行数据使用总金额减去已经消耗的金额来计算
+            last_parent_subtotal = subtotal - collect_parent_subtotal
+            collects[-1][0].write({
+                    'price': safe_division(last_parent_subtotal, collects[-1][0].goods_qty),
+                    'subtotal': last_parent_subtotal,
+                })
+
+        return True
+
     def update_parent_price(self, cr, uid, ids, context=None):
         for assembly in self.browse(cr, uid, ids, context=context):
             subtotal = sum(child.subtotal for child in assembly.line_out_ids) + assembly.fee
-            for parent in assembly.line_in_ids:
-                parent.write({
-                        'price': safe_division(subtotal, parent.goods_qty),
-                        'subtotal': subtotal,
-                    })
 
+            assembly.apportion_cost(subtotal)
         return True
 
     def check_parent_length(self, cr, uid, ids, context=None):
         for assembly in self.browse(cr, uid, ids, context=context):
-            if len(assembly.line_in_ids) != 1:
-                raise osv.except_osv(u'错误', u'组合件的产品有且只能有一个')
+            if not len(assembly.line_in_ids) or not len(assembly.line_out_ids):
+                raise osv.except_osv(u'错误', u'组合件和子件的产品必须存在')
 
         return True
 
     @inherits_after(res_back=False)
     def approve_order(self, cr, uid, ids, context=None):
+        self.check_parent_length(cr, uid, ids, context=context)
         return self.update_parent_price(cr, uid, ids, context=context)
 
     @inherits()
@@ -46,14 +72,12 @@ class wh_assembly(osv.osv):
     @create_name
     def create(self, cr, uid, vals, context=None):
         res_id = super(wh_assembly, self).create(cr, uid, vals, context=context)
-        self.check_parent_length(cr, uid, res_id, context=context)
         self.update_parent_price(cr, uid, res_id, context=context)
 
         return res_id
 
     def write(self, cr, uid, ids, vals, context=None):
         res = super(wh_assembly, self).write(cr, uid, ids, vals, context=context)
-        self.check_parent_length(cr, uid, ids, context=context)
         self.update_parent_price(cr, uid, ids, context=context)
 
         return res
@@ -144,9 +168,52 @@ class wh_disassembly(osv.osv):
         'wh.move': 'move_id',
     }
 
-    @inherits()
-    def approve_order(self, cr, uid, ids, context=None):
+    def apportion_cost(self, cr, uid, ids, subtotal, context=None):
+        for assembly in self.browse(cr, uid, ids, context=context):
+            if not assembly.line_in_ids:
+                continue
+
+            collects = []
+            for child in assembly.line_in_ids:
+                collects.append((child, child.goods_id.get_suggested_cost_by_warehouse(
+                    child.warehouse_dest_id.id, child.goods_qty)[0]))
+
+            amount_total, collect_child_subtotal = sum(collect[1] for collect in collects), 0
+            for child, amount in islice(collects, 0, len(collects) - 1):
+                child_subtotal = safe_division(amount, amount_total) * subtotal
+                collect_child_subtotal += child_subtotal
+                child.write({
+                        'price': safe_division(child_subtotal, child.goods_qty),
+                        'subtotal': child_subtotal,
+                    })
+
+            # 最后一行数据使用总金额减去已经消耗的金额来计算
+            last_child_subtotal = subtotal - collect_child_subtotal
+            collects[-1][0].write({
+                    'price': safe_division(last_child_subtotal, collects[-1][0].goods_qty),
+                    'subtotal': last_child_subtotal,
+                })
+
         return True
+
+    def update_child_price(self, cr, uid, ids, context=None):
+        for assembly in self.browse(cr, uid, ids, context=context):
+            subtotal = sum(child.subtotal for child in assembly.line_out_ids) + assembly.fee
+
+            assembly.apportion_cost(subtotal)
+        return True
+
+    def check_parent_length(self, cr, uid, ids, context=None):
+        for assembly in self.browse(cr, uid, ids, context=context):
+            if not len(assembly.line_in_ids) or not len(assembly.line_out_ids):
+                raise osv.except_osv(u'错误', u'组合件和子件的产品必须存在')
+
+        return True
+
+    @inherits_after(res_back=False)
+    def approve_order(self, cr, uid, ids, context=None):
+        self.check_parent_length(cr, uid, ids, context=context)
+        return self.update_child_price(cr, uid, ids, context=context)
 
     @inherits()
     def cancel_approved_order(self, cr, uid, ids, context=None):
@@ -158,7 +225,16 @@ class wh_disassembly(osv.osv):
 
     @create_name
     def create(self, cr, uid, vals, context=None):
-        return super(wh_disassembly, self).create(cr, uid, vals, context=context)
+        res_id = super(wh_disassembly, self).create(cr, uid, vals, context=context)
+        self.update_child_price(cr, uid, res_id, context=context)
+
+        return res_id
+
+    def write(self, cr, uid, ids, vals, context=None):
+        res = super(wh_disassembly, self).write(cr, uid, ids, vals, context=context)
+        self.update_child_price(cr, uid, ids, context=context)
+
+        return res
 
     def onchange_bom(self, cr, uid, ids, bom_id, context=None):
         line_out_ids, line_in_ids = [], []
@@ -166,14 +242,19 @@ class wh_disassembly(osv.osv):
         warehouse_id = self.pool.get('warehouse').search(cr, uid, [('type', '=', 'stock')], limit=1, context=context)[0]
         if bom_id:
             bom = self.pool.get('wh.bom').browse(cr, uid, bom_id, context=context)
-            line_out_ids = [{
-                'goods_id': line.goods_id.id,
-                'warehouse_id': self.pool.get('warehouse').get_warehouse_by_type(cr, uid, 'production'),
-                'warehouse_dest_id': warehouse_id,
-                'uom_id': line.goods_id.uom_id.id,
-                'goods_qty': line.goods_qty,
-                'price': 0,
-            } for line in bom.line_parent_ids]
+            line_out_ids = []
+            for line in bom.line_parent_ids:
+                subtotal, price = self.pool.get('goods').get_suggested_cost_by_warehouse(
+                    cr, uid, line.goods_id.id, warehouse_id, line.goods_qty, context=context)
+                line_out_ids.append({
+                        'goods_id': line.goods_id.id,
+                        'warehouse_id': self.pool.get('warehouse').get_warehouse_by_type(cr, uid, 'production'),
+                        'warehouse_dest_id': warehouse_id,
+                        'uom_id': line.goods_id.uom_id.id,
+                        'goods_qty': line.goods_qty,
+                        'price': price,
+                        'subtotal': subtotal,
+                    })
 
             line_in_ids = [{
                 'goods_id': line.goods_id.id,
@@ -181,7 +262,6 @@ class wh_disassembly(osv.osv):
                 'warehouse_dest_id': self.pool.get('warehouse').get_warehouse_by_type(cr, uid, 'production'),
                 'uom_id': line.goods_id.uom_id.id,
                 'goods_qty': line.goods_qty,
-                'price': 0,
             } for line in bom.line_child_ids]
 
         return {'value': {'line_out_ids': line_out_ids, 'line_in_ids': line_in_ids}}
@@ -229,6 +309,7 @@ class wh_disassembly(osv.osv):
     _columns = {
         'move_id': fields.many2one('wh.move', u'移库单', required=True, index=True, ondelete='cascade'),
         'bom_id': fields.many2one('wh.bom', u'模板', domain=[('type', '=', 'disassembly')], context={'type': 'disassembly'}),
+        # 'is_apportion': fields.boolean(u'分摊分析'),
         'fee': fields.float(u'拆卸费用', digits_compute=dp.get_precision('Accounting')),
     }
 

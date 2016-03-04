@@ -63,7 +63,7 @@
             <field name='name'>组装单</field>
             <field name='res_model'>wh.assembly</field>
             <field name='view_mode'>tree,form</field>
-            <!-- <field name='context'>{'readonly_by_pass': ['difference_qty']}</field> -->
+            <field name='context'>{'readonly_by_pass': ['price', 'subtotal']}</field>
             <field name='view_id' ref='wh_assembly_tree' />
         </record>
 
@@ -72,7 +72,7 @@
             <field name='name'>拆卸单</field>
             <field name='res_model'>wh.disassembly</field>
             <field name='view_mode'>tree,form</field>
-            <!-- <field name='context'>{'readonly_by_pass': ['difference_qty']}</field> -->
+            <field name='context'>{'readonly_by_pass': ['price', 'subtotal']}</field>
             <field name='view_id' ref='wh_disassembly_tree' />
         </record>
 

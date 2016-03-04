@@ -25,7 +25,7 @@
     "author": 'ZhengXiang',
     "website": "http://www.osbzr.com",
     "category": "Generic Modules",
-    "depends": ['core', 'decimal_precision', 'web_editable_list_length', 'web_readonly_bypass', 'web_sublist'],
+    "depends": ['core', 'decimal_precision', 'web_readonly_bypass', 'web_sublist'],
     "description": """
     """,
     "data": [
