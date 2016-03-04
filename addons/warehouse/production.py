@@ -2,7 +2,7 @@
 
 from openerp.osv import osv
 from openerp.osv import fields
-from utils import inherits, inherits_after, create_name
+from utils import inherits, inherits_after, create_name, safe_division
 import openerp.addons.decimal_precision as dp
 
 
@@ -13,9 +13,27 @@ class wh_assembly(osv.osv):
         'wh.move': 'move_id',
     }
 
-    @inherits()
-    def approve_order(self, cr, uid, ids, context=None):
+    def update_parent_price(self, cr, uid, ids, context=None):
+        for assembly in self.browse(cr, uid, ids, context=context):
+            subtotal = sum(child.subtotal for child in assembly.line_out_ids) + assembly.fee
+            for parent in assembly.line_in_ids:
+                parent.write({
+                        'price': safe_division(subtotal, parent.goods_qty),
+                        'subtotal': subtotal,
+                    })
+
         return True
+
+    def check_parent_length(self, cr, uid, ids, context=None):
+        for assembly in self.browse(cr, uid, ids, context=context):
+            if len(assembly.line_in_ids) != 1:
+                raise osv.except_osv(u'错误', u'组合件的产品有且只能有一个')
+
+        return True
+
+    @inherits_after(res_back=False)
+    def approve_order(self, cr, uid, ids, context=None):
+        return self.update_parent_price(cr, uid, ids, context=context)
 
     @inherits()
     def cancel_approved_order(self, cr, uid, ids, context=None):
@@ -27,7 +45,18 @@ class wh_assembly(osv.osv):
 
     @create_name
     def create(self, cr, uid, vals, context=None):
-        return super(wh_assembly, self).create(cr, uid, vals, context=context)
+        res_id = super(wh_assembly, self).create(cr, uid, vals, context=context)
+        self.check_parent_length(cr, uid, res_id, context=context)
+        self.update_parent_price(cr, uid, res_id, context=context)
+
+        return res_id
+
+    def write(self, cr, uid, ids, vals, context=None):
+        res = super(wh_assembly, self).write(cr, uid, ids, vals, context=context)
+        self.check_parent_length(cr, uid, ids, context=context)
+        self.update_parent_price(cr, uid, ids, context=context)
+
+        return res
 
     def onchange_bom(self, cr, uid, ids, bom_id, context=None):
         line_out_ids, line_in_ids = [], []
@@ -42,17 +71,22 @@ class wh_assembly(osv.osv):
                 'warehouse_dest_id': warehouse_id,
                 'uom_id': line.goods_id.uom_id.id,
                 'goods_qty': line.goods_qty,
-                'price': 0,
             } for line in bom.line_parent_ids]
 
-            line_out_ids = [{
-                'goods_id': line.goods_id.id,
-                'warehouse_id': warehouse_id,
-                'warehouse_dest_id': self.pool.get('warehouse').get_warehouse_by_type(cr, uid, 'production'),
-                'uom_id': line.goods_id.uom_id.id,
-                'goods_qty': line.goods_qty,
-                'price': 0,
-            } for line in bom.line_child_ids]
+            line_out_ids = []
+            for line in bom.line_child_ids:
+                subtotal, price = self.pool.get('goods').get_suggested_cost_by_warehouse(
+                    cr, uid, line.goods_id.id, warehouse_id, line.goods_qty, context=context)
+
+                line_out_ids.append({
+                        'goods_id': line.goods_id.id,
+                        'warehouse_id': warehouse_id,
+                        'warehouse_dest_id': self.pool.get('warehouse').get_warehouse_by_type(cr, uid, 'production'),
+                        'uom_id': line.goods_id.uom_id.id,
+                        'goods_qty': line.goods_qty,
+                        'price': price,
+                        'subtotal': subtotal,
+                    })
 
         return {'value': {'line_out_ids': line_out_ids, 'line_in_ids': line_in_ids}}
 

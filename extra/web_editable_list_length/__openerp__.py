@@ -23,7 +23,7 @@
 #
 ##############################################################################
 {
-    'name': 'Web Menu Create',
+    'name': 'Web Editable List Length',
     'version': '0.1',
     "author": "zhengXiang",
     "website": "http://www.osbzr.com",
@@ -33,7 +33,7 @@
     ],
     'description':
     """
-        直接在菜单上面显示新建按钮的快速通道，需要将菜单记录中的create_tag设置位True
+        form视图中，直接在one2many字段上定义options="{'list_length': 1}"
     """,
     'data': [
         'views/assets_backend.xml',

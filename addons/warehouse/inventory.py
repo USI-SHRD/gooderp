@@ -2,7 +2,7 @@
 
 from openerp.osv import osv
 from openerp.osv import fields
-from utils import create_name
+from utils import create_name, safe_division
 import openerp.addons.decimal_precision as dp
 
 
@@ -78,31 +78,27 @@ class wh_inventory(osv.osv):
         return True
 
     def create_losses_out(self, cr, uid, inventory, out_line, context=None):
-        context_out = dict(context or {}, warehouse_dest_type='inventory')
-
         out_vals = {
             'type': 'losses',
             'line_out_ids': [],
         }
 
         for line in out_line:
-            out_vals['line_out_ids'].append([0, False, line.get_move_line(context=context_out)])
+            out_vals['line_out_ids'].append([0, False, line.get_move_line(wh_type='out')])
 
-        out_id = self.pool.get('wh.out').create(cr, uid, out_vals, context=context_out)
+        out_id = self.pool.get('wh.out').create(cr, uid, out_vals, context=context)
         inventory.write({'out_id': out_id})
 
     def create_overage_in(self, cr, uid, inventory, in_line, context=None):
-        context_in = dict(context or {}, warehouse_type='inventory')
-
         in_vals = {
             'type': 'overage',
             'line_in_ids': [],
         }
 
         for line in in_line:
-            in_vals['line_in_ids'].append([0, False, line.get_move_line(context=context_in)])
+            in_vals['line_in_ids'].append([0, False, line.get_move_line(wh_type='in')])
 
-        in_id = self.pool.get('wh.in').create(cr, uid, in_vals, context=context_in)
+        in_id = self.pool.get('wh.in').create(cr, uid, in_vals, context=context)
         inventory.write({'in_id': in_id})
 
     def generate_inventory(self, cr, uid, ids, context=None):
@@ -162,22 +158,24 @@ class wh_inventory(osv.osv):
 
     def get_zero_inventory(self, cr, uid, ids, goods_ids, context=None):
         goods_obj = self.pool.get('goods')
-        zero_goods_ids = goods_obj.search(cr, uid, [], context=context)
+        for inventory in self.browse(cr, uid, ids, context=context):
+            domain = inventory.goods and [('name', 'ilike', '%%%s%%' % inventory.goods)] or []
+            zero_goods_ids = goods_obj.search(cr, uid, domain, context=context)
 
-        res = []
-        temp_warehouse_ids = self.pool.get('warehouse').search(cr, uid,
-            [('type', '=', 'stock')], limit=1, context=context)
-        for goods in goods_obj.browse(cr, uid, [goods_id for goods_id in
-                zero_goods_ids if goods_id not in goods_ids], context=context):
-            res.append({
-                    # 'warehouse_id': goods.main_warehouse_id.id, TODO
-                    'warehouse_id': temp_warehouse_ids[0],
-                    'goods_id': goods.id,
-                    'uom_id': goods.uom_id.id,
-                    'qty': 0,
-                })
+            res = []
+            temp_warehouse_ids = self.pool.get('warehouse').search(cr, uid,
+                [('type', '=', 'stock')], limit=1, context=context)
+            for goods in goods_obj.browse(cr, uid, [goods_id for goods_id in
+                    zero_goods_ids if goods_id not in goods_ids], context=context):
+                res.append({
+                        # 'warehouse_id': goods.main_warehouse_id.id, TODO
+                        'warehouse_id': temp_warehouse_ids[0],
+                        'goods_id': goods.id,
+                        'uom_id': goods.uom_id.id,
+                        'qty': 0,
+                    })
 
-        return res
+            return res
 
     def query_inventory(self, cr, uid, ids, context=None):
         line_obj = self.pool.get('wh.inventory.line')
@@ -229,20 +227,31 @@ class wh_inventory_line(osv.osv):
     def onchange_qty(self, cr, uid, ids, real_qty, inventory_qty, context=None):
         return {'value': {'difference_qty': inventory_qty - real_qty}}
 
-    def get_move_line(self, cr, uid, ids, context=None):
+    def get_move_line(self, cr, uid, ids, wh_type='in', context=None):
         if isinstance(ids, (list, tuple)):
             ids = ids[0]
 
         line = self.browse(cr, uid, ids, context=context)
 
         inventory_warehouse = self.pool.get('warehouse').get_warehouse_by_type(cr, uid, 'inventory')
-        return {
-            'warehouse_id': line.difference_qty < 0 and line.warehouse_id.id or inventory_warehouse,
-            'warehouse_dest_id': line.difference_qty > 0 and line.warehouse_id.id or inventory_warehouse,
+
+        res = {
+            'warehouse_id': wh_type == 'out' and line.warehouse_id.id or inventory_warehouse,
+            'warehouse_dest_id': wh_type == 'in' and line.warehouse_id.id or inventory_warehouse,
             'goods_id': line.goods_id.id,
             'uom_id': line.uom_id.id,
             'goods_qty': abs(line.difference_qty)
         }
+
+        if wh_type == 'in':
+            subtotal, matching_qty = line.goods_id.get_suggested_cost_by_warehouse(
+                line.warehouse_id.id, abs(line.difference_qty))
+            res.update({
+                    'price': safe_division(subtotal, matching_qty),
+                    'subtotal': subtotal,
+                })
+
+        return res
 
     _columns = {
         'inventory_id': fields.many2one('wh.inventory', u'盘点', ondelete='cascade'),

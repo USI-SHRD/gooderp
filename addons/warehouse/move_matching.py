@@ -58,7 +58,7 @@ class wh_move_line(osv.osv):
     def prev_action_done(self, cr, uid, ids, context=None):
         matching_obj = self.pool.get('wh.move.matching')
         for line in self.browse(cr, uid, ids, context=context):
-            if line.warehouse_id.type == 'stock' and line.warehouse_dest_id.type != 'stock' and line.goods_id.is_using_matching():
+            if line.warehouse_id.type == 'stock' and line.goods_id.is_using_matching():
                 matching_records, subtotal = line.goods_id.get_matching_records(
                     line.warehouse_id.id, line.goods_qty, context=context)
 

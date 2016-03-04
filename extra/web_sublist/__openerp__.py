@@ -34,6 +34,11 @@
     'data': [
         'views/assets_backend.xml',
     ],
+    'description':
+    """
+        在tree视图中将一个one2many字段渲染成一个子table（不可以在editable中使用）
+        <field name='line_parent_ids' widget='relation_sublist' options="{'field': 'goods_qty'}" string='组合件数量' />
+    """,
     'qweb': [
         'static/src/xml/sublist.xml',
     ],
