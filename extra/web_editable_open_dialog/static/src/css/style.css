@@ -1,0 +1,10 @@
+
+a.open_dialog {
+    position: absolute;
+    right: 6px;
+    top: 1px;
+}
+
+.oe_form_container input {
+    text-align: left !important;
+}
