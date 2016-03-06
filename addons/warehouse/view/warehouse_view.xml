@@ -1,6 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <openerp>
     <data>
+        <record id='wh_move_line_lot_form' model='ir.ui.view'>
+            <field name='name'>wh.move.line.lot.form</field>
+            <field name='model'>wh.move.line</field>
+            <field name='arch' type='xml'>
+                <form string='批次' >
+                    <group string='批次'>
+                        <field name='lot_id' nolabel='1' >
+                            <tree editable='bottom' >
+                                <field name='name' required='1' />
+                                <field name='goods_qty' required='1' />
+                                <field name='note' />
+                            </tree>
+                        </field>
+                    </group>
+                </form>
+            </field>
+        </record>
+
         <!-- 仓库 -->
         <record id='warehouse_tree' model='ir.ui.view'>
             <field name='name'>warehouse.tree</field>
@@ -58,7 +76,8 @@
                 <tree string='库存调拨' editable='bottom'>
                     <field name='goods_id' required='1' on_change='onchange_goods_by_in(goods_id)' />
                     <field name='uom_id' required='1' />
-                    <field name='goods_qty' on_change='onchange_price_by_in(goods_qty, price)' sum='1' />
+                    <field name='lot_id' invisible='1' />
+                    <field name='goods_qty' on_change='onchange_price_by_in(goods_qty, price)' sum='1' readonly='1' options="{'open_dialog': {'type': 'set_one2many', 'field': 'lot_id', 'view_id': 'warehouse.wh_move_line_lot_form'}}" />
                     <field name='warehouse_id' invisible='1' />
                     <field name='warehouse_dest_id' string='仓库' required='1' />
                     <field name='price' string='入库单价' on_change='onchange_price_by_in(goods_qty, price)' />

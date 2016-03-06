@@ -28,6 +28,8 @@ openerp.web_sublist = function(instance) {
 
             return deferred.then(function(list) {
                 var containers = {}
+
+                // 统计需要定义子列表的字段
                 _.each(list.columns, function(column) {
                     if (column.widget === 'relation_sublist') {
                         var options = instance.web.py_eval(column.options || '{}');
@@ -39,12 +41,14 @@ openerp.web_sublist = function(instance) {
                     }
                 });
 
+                // 统计需要定义子列表字段的ids
                 self.records.each(function(record) {
                     _.each(_.keys(containers), function(key) {
                         containers[key]['ids'] = containers[key]['ids'].concat(record.get(key));
                     });
-                })
+                });
 
+                // 根据子列表的model、field、ids来取值
                 _.each(_.keys(containers), function(key) {
                     var container = containers[key];
                     new instance.web.Model(container.relation).call('read', [container.ids, container.fields]).then(function(results) {

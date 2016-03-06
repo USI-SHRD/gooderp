@@ -32,7 +32,7 @@
                         </group>
 
                         <group string='组合件'>
-                            <field name='line_parent_ids' nolabel='1' options="{'list_length': 1}">
+                            <field name='line_parent_ids' nolabel='1' >
                                 <tree editable='bottom'>
                                     <field name='goods_id' required='1' />
                                     <field name='goods_qty' required='1' />
@@ -123,7 +123,7 @@
                             <field nolabel='1' name='line_in_ids' context="{
                                 'tree_view_ref': 'warehouse.wh_move_line_in_assembly_tree',
                                 'warehouse_type': 'production',
-                            }" attrs="{'readonly': [('state', '!=', 'draft')]}" options="{'list_length': 1}" />
+                            }" attrs="{'readonly': [('state', '!=', 'draft')]}" />
                         </group>
 
                         <group string='子件'>
@@ -209,7 +209,7 @@
                             <field nolabel='1' name='line_out_ids' context="{
                                 'tree_view_ref': 'warehouse.wh_move_line_out_tree',
                                 'warehouse_dest_type': 'others',
-                            }" attrs="{'readonly': [('state', '!=', 'draft')]}" options="{'list_length': 1}" />
+                            }" attrs="{'readonly': [('state', '!=', 'draft')]}" />
                         </group>
 
                         <group string='子件'>
