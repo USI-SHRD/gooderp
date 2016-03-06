@@ -7,8 +7,15 @@ openerp.web_editable_open_dialog = function(instance) {
             return res.then(function() {
                 _.each(self.columns, function(column) {
                     if (column.options && _.isString(column.options) && column.options.indexOf('open_dialog') != -1) {
-
-                        if (column.options.indexOf('set_one2many') != -1) {
+                        if (column.options.indexOf('set_one2many_readonly') != -1) {
+                            var $td = self.$el.find('.oe_form_container [data-fieldname=' + column.id + ']');
+                            $td.addClass('readonly_open_dialog');
+                            $td.click(function(e) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                self.do_open_one2many_popup(instance.web.py_eval(column.options || '{}'));
+                            });
+                        } else if (column.options.indexOf('set_one2many') != -1) {
                             var dialog = self.$el.find('.oe_form_container [data-fieldname=' + column.id + '] a.open_dialog');
                             if (dialog.length === 0) {
                                 dialog = $("<a class='open_dialog'>...</a>").click(function(e) {
@@ -18,9 +25,7 @@ openerp.web_editable_open_dialog = function(instance) {
 
                                 self.$el.find('.oe_form_container [data-fieldname=' + column.id + ']').append(dialog)
                             };
-                        } else if (column.options.indexOf('set_one2many_readonly') != -1) {
-
-                        };
+                        } 
                     };
                 })
             });

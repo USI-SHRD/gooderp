@@ -8,3 +8,7 @@ a.open_dialog {
 .oe_form_container input {
     text-align: left !important;
 }
+
+span.readonly_open_dialog {
+    cursor: pointer;
+}

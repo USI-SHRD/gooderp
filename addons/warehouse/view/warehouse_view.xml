@@ -77,7 +77,7 @@
                     <field name='goods_id' required='1' on_change='onchange_goods_by_in(goods_id)' />
                     <field name='uom_id' required='1' />
                     <field name='lot_id' invisible='1' />
-                    <field name='goods_qty' on_change='onchange_price_by_in(goods_qty, price)' sum='1' readonly='1' options="{'open_dialog': {'type': 'set_one2many', 'field': 'lot_id', 'view_id': 'warehouse.wh_move_line_lot_form'}}" />
+                    <field name='goods_qty' on_change='onchange_price_by_in(goods_qty, price)' sum='1' readonly='1' options="{'open_dialog': {'type': 'set_one2many_readonly', 'field': 'lot_id', 'view_id': 'warehouse.wh_move_line_lot_form'}}" />
                     <field name='warehouse_id' invisible='1' />
                     <field name='warehouse_dest_id' string='仓库' required='1' />
                     <field name='price' string='入库单价' on_change='onchange_price_by_in(goods_qty, price)' />
