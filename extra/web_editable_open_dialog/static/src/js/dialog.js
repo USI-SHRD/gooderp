@@ -65,7 +65,20 @@ openerp.web_editable_open_dialog = function(instance) {
                     self.dataset.get_context(),
                     {
                         view_id: view_id[1],
-                        create_function: function(data, options) {
+                        create_function: function(data) {
+                            console.warn('pop', data, options, pop);
+                            console.warn(options.open_dialog.compute_field);
+                            if (!_.isUndefined(options.open_dialog.compute_field)) {
+                                var compute_field = options.open_dialog.compute_field,
+                                    $compute_field = pop.$el.find('td.oe_list_footer[data-field=' + compute_field + ']'),
+                                    compute_result = parseFloat($compute_field.text());
+
+                                if (_.isNaN(compute_field)) {
+                                    notify.warn('错误', '需要统计计算的字段没有统计数据或者无法被合计');
+                                } else {
+                                    self.editor.form.fields[compute_field].set_value(compute_result);
+                                };
+                            };
                             field.set_value(history_value.concat(data[field_column.id]));
                             pop.check_exit();
                             return $.Deferred();
@@ -76,12 +89,11 @@ openerp.web_editable_open_dialog = function(instance) {
                 var set_pop_value = function() {
                     try {
                         pop.view_form.fields.lot_id.set_value(history_value);
-                        // pop.view_form.do_onchange(null);
-                        // pop.view_form.on_form_changed();
                     } catch(e) {
                         setTimeout(set_pop_value, 100);
                     }
                 };
+
                 // TODO 使用setTimeout的方式来等待pop加载完毕，不是很好的方法，需要找到一个更好的方法
                 setTimeout(set_pop_value, 100);
             });
