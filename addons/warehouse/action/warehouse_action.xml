@@ -83,5 +83,13 @@
             <field name='view_mode'>tree,form</field>
             <field name='view_id' ref='wh_bom_tree' />
         </record>
+
+        <!-- 序列号 -->
+        <record id='wh_lot_action' model='ir.actions.act_window' >
+            <field name='name'>序列号</field>
+            <field name='res_model'>wh.lot</field>
+            <field name='view_mode'>tree</field>
+            <field name='view_id' ref='wh_lot_tree' />
+        </record>
     </data>
 </openerp>

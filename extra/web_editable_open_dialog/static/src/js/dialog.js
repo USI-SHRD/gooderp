@@ -55,6 +55,9 @@ openerp.web_editable_open_dialog = function(instance) {
                 return notify.warn('错误', 'options中定义的视图id需要指定具体的模块名称');
             }
 
+            var field = self.editor.form.fields[field_column.id],
+                history_value = field.get_value();
+
             new instance.web.Model('ir.model.data').call('get_object_reference', views).then(function(view_id) {
                 pop.show_element(
                     self.model,
@@ -63,18 +66,24 @@ openerp.web_editable_open_dialog = function(instance) {
                     {
                         view_id: view_id[1],
                         create_function: function(data, options) {
-                            var item = _.find(self.fields_for_resize, function(item) {
-                                return item.field.name === field_column.id;
-                            });
-
-                            var history_value = item.field.get_value();
-                            item.field.set_value(history_value.concat(data[field_column.id]));
-
+                            field.set_value(history_value.concat(data[field_column.id]));
                             pop.check_exit();
                             return $.Deferred();
                         }
                     }
                 );
+
+                var set_pop_value = function() {
+                    try {
+                        pop.view_form.fields.lot_id.set_value(history_value);
+                        // pop.view_form.do_onchange(null);
+                        // pop.view_form.on_form_changed();
+                    } catch(e) {
+                        setTimeout(set_pop_value, 100);
+                    }
+                };
+                // TODO 使用setTimeout的方式来等待pop加载完毕，不是很好的方法，需要找到一个更好的方法
+                setTimeout(set_pop_value, 100);
             });
         },
     });
