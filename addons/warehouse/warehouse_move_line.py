@@ -4,6 +4,9 @@ from openerp.osv import osv
 from openerp.osv import fields
 import openerp.addons.decimal_precision as dp
 from utils import safe_division
+from jinja2 import Environment, PackageLoader
+
+env = Environment(loader=PackageLoader('openerp.addons.warehouse', 'html'), autoescape=True)
 
 
 class wh_move_line(osv.osv):
@@ -148,6 +151,23 @@ class wh_move_line(osv.osv):
 
         return super(wh_move_line, self).unlink(cr, uid, ids, context=context)
 
+    def _get_goods_qty_html(self, cr, uid, ids, field_name, arg, context=None):
+        template = env.get_template('move_lot.html')
+
+        res = {}
+        for move in self.browse(cr, uid, ids, context=context):
+            lots = []
+            for line in move.lot_id:
+                lots.append({
+                        'name': line.name,
+                        'goods_qty': line.goods_qty,
+                        'note': line.note,
+                    })
+
+            res.update({move.id: template.render({'lots': lots}).strip()})
+
+        return res
+
     _columns = {
         'move_id': fields.many2one('wh.move', string=u'移库单', ondelete='cascade'),
         'date': fields.datetime(u'完成日期', copy=False),
@@ -162,6 +182,7 @@ class wh_move_line(osv.osv):
         'warehouse_id': fields.many2one('warehouse', string=u'调出仓库', required=True),
         'warehouse_dest_id': fields.many2one('warehouse', string=u'调入仓库', required=True),
         'goods_qty': fields.float(u'数量', digits_compute=dp.get_precision('Goods Quantity')),
+        'goods_qty_html': fields.function(_get_goods_qty_html, type='text', string=u'数量'),
         'price': fields.float(u'单价', digits_compute=dp.get_precision('Accounting')),
         'subtotal': fields.float(u'金额', digits_compute=dp.get_precision('Accounting')),
         # 'subtotal': fields.function(_get_subtotal, type='float', string=u'金额',

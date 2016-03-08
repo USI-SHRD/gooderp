@@ -7,8 +7,15 @@ openerp.web_editable_open_dialog = function(instance) {
             return res.then(function() {
                 _.each(self.columns, function(column) {
                     if (column.options && _.isString(column.options) && column.options.indexOf('open_dialog') != -1) {
-
-                        if (column.options.indexOf('set_one2many') != -1) {
+                        if (column.options.indexOf('set_one2many_readonly') != -1) {
+                            var $td = self.$el.find('.oe_form_container [data-fieldname=' + column.id + ']');
+                            $td.addClass('readonly_open_dialog');
+                            $td.click(function(e) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                self.do_open_one2many_popup(instance.web.py_eval(column.options || '{}'));
+                            });
+                        } else if (column.options.indexOf('set_one2many') != -1) {
                             var dialog = self.$el.find('.oe_form_container [data-fieldname=' + column.id + '] a.open_dialog');
                             if (dialog.length === 0) {
                                 dialog = $("<a class='open_dialog'>...</a>").click(function(e) {
@@ -18,9 +25,7 @@ openerp.web_editable_open_dialog = function(instance) {
 
                                 self.$el.find('.oe_form_container [data-fieldname=' + column.id + ']').append(dialog)
                             };
-                        } else if (column.options.indexOf('set_one2many_readonly') != -1) {
-
-                        };
+                        } 
                     };
                 })
             });
@@ -50,6 +55,9 @@ openerp.web_editable_open_dialog = function(instance) {
                 return notify.warn('错误', 'options中定义的视图id需要指定具体的模块名称');
             }
 
+            var field = self.editor.form.fields[field_column.id],
+                history_value = field.get_value();
+
             new instance.web.Model('ir.model.data').call('get_object_reference', views).then(function(view_id) {
                 pop.show_element(
                     self.model,
@@ -57,19 +65,37 @@ openerp.web_editable_open_dialog = function(instance) {
                     self.dataset.get_context(),
                     {
                         view_id: view_id[1],
-                        create_function: function(data, options) {
-                            var item = _.find(self.fields_for_resize, function(item) {
-                                return item.field.name === field_column.id;
-                            });
+                        create_function: function(data) {
+                            console.warn('pop', data, options, pop);
+                            console.warn(options.open_dialog.compute_field);
+                            if (!_.isUndefined(options.open_dialog.compute_field)) {
+                                var compute_field = options.open_dialog.compute_field,
+                                    $compute_field = pop.$el.find('td.oe_list_footer[data-field=' + compute_field + ']'),
+                                    compute_result = parseFloat($compute_field.text());
 
-                            var history_value = item.field.get_value();
-                            item.field.set_value(history_value.concat(data[field_column.id]));
-
+                                if (_.isNaN(compute_field)) {
+                                    notify.warn('错误', '需要统计计算的字段没有统计数据或者无法被合计');
+                                } else {
+                                    self.editor.form.fields[compute_field].set_value(compute_result);
+                                };
+                            };
+                            field.set_value(history_value.concat(data[field_column.id]));
                             pop.check_exit();
                             return $.Deferred();
                         }
                     }
                 );
+
+                var set_pop_value = function() {
+                    try {
+                        pop.view_form.fields.lot_id.set_value(history_value);
+                    } catch(e) {
+                        setTimeout(set_pop_value, 100);
+                    }
+                };
+
+                // TODO 使用setTimeout的方式来等待pop加载完毕，不是很好的方法，需要找到一个更好的方法
+                setTimeout(set_pop_value, 100);
             });
         },
     });
