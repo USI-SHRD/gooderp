@@ -4,6 +4,7 @@ openerp.web_editable_open_dialog = function(instance) {
             var self = this,
                 res = this._super.apply(this, arguments);
 
+            // console.warn(self.columns);
             return res.then(function() {
                 _.each(self.columns, function(column) {
                     if (column.options && _.isString(column.options) && column.options.indexOf('open_dialog') != -1) {
@@ -11,6 +12,7 @@ openerp.web_editable_open_dialog = function(instance) {
                             var $td = self.$el.find('.oe_form_container [data-fieldname=' + column.id + ']'),
                                 current_field = self.editor.form.fields[column.id];
 
+                            console.warn('column', self, column);
                             $td.addClass('readonly_open_dialog');
                             $td.click(function(e) {
                                 e.preventDefault();
@@ -63,16 +65,33 @@ openerp.web_editable_open_dialog = function(instance) {
             var field = self.editor.form.fields[field_column.id],
                 history_value = field.get_value();
 
+            var context = self.dataset.get_context();
+            try {
+                if (!_.isUndefined(options.open_dialog.context) && _.isArray(options.open_dialog.context)) {
+                    _.each(options.open_dialog.context, function(field_name) {
+                        var temp_context = {},
+                            field_value = self.editor.form.fields[field_name].get_value()
+
+                        if (!field_value) {
+                            throw '请先给' + field_name + '字段赋值';
+                        }
+
+                        temp_context[field_name] = field_value;
+                        context.add(temp_context);
+                    })
+                };
+            } catch(e) {
+                return notify.notify('错误', e);
+            }
+
             new instance.web.Model('ir.model.data').call('get_object_reference', views).then(function(view_id) {
                 pop.show_element(
                     self.model,
                     false,
-                    self.dataset.get_context(),
+                    context,
                     {
                         view_id: view_id[1],
                         create_function: function(data) {
-                            console.warn('pop', data, options, pop);
-                            console.warn(options.open_dialog.compute_field);
                             if (!_.isUndefined(options.open_dialog.compute_field)) {
                                 var compute_field = options.open_dialog.compute_field,
                                     $compute_field = pop.$el.find('td.oe_list_footer[data-field=' + compute_field + ']'),
@@ -93,6 +112,7 @@ openerp.web_editable_open_dialog = function(instance) {
 
                 var set_pop_value = function() {
                     try {
+                        console.warn('123213213', history_value);
                         pop.view_form.fields[field_column.id].set_value(history_value);
                     } catch(e) {
                         setTimeout(set_pop_value, 100);

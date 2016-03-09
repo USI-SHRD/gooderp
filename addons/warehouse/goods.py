@@ -54,8 +54,11 @@ class goods(osv.osv):
     def is_using_matching(self, cr, uid, ids, context=None):
         return True
 
-    def is_using_log(self, cr, uid, ids, context=None):
-        return True
+    def is_using_batch(self, cr, uid, ids, context=None):
+        for goods in self.browse(cr, uid, ids, context=context):
+            return goods.using_batch
+
+        return False
 
     def get_matching_records(self, cr, uid, ids, warehouse_id, qty, ignore_stock=False, context=None):
         line_obj = self.pool.get('wh.move.line')

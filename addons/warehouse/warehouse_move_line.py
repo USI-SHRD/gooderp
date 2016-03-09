@@ -22,6 +22,17 @@ class wh_move_line(osv.osv):
         ('done', u'已审核'),
     ]
 
+    def default_get(self, cr, uid, fields, context=None):
+        res = super(wh_move_line, self).default_get(cr, uid, fields, context=context)
+        context = context or {}
+        if context.get('goods_id') and context.get('warehouse_id'):
+            res.update({
+                'goods_id': context.get('goods_id'),
+                'warehouse_id': context.get('warehouse_id')
+            })
+
+        return res
+
     def get_real_price(self, cr, uid, ids, context=None):
         for line in self.browse(cr, uid, ids, context=context):
             return safe_division(line.subtotal, line.goods_qty)
@@ -120,7 +131,11 @@ class wh_move_line(osv.osv):
         # TODO 需要计算保质期
         if goods_id:
             goods = self.pool.get('goods').browse(cr, uid, goods_id, context=context)
-            return {'value': {'uom_id': goods.uom_id.id, 'using_batch': goods.using_batch}}
+            return {'value': {
+                'uom_id': goods.uom_id.id,
+                'using_batch': goods.using_batch,
+                'force_batch_one': goods.force_batch_one,
+            }}
 
         return {}
 
@@ -128,7 +143,11 @@ class wh_move_line(osv.osv):
         res = {}
         if goods_id:
             goods = self.pool.get('goods').browse(cr, uid, goods_id, context=context)
-            res.update({'uom_id': goods.uom_id.id})
+            res.update({
+                'uom_id': goods.uom_id.id,
+                'using_batch': goods.using_batch,
+                'force_batch_one': goods.force_batch_one,
+            })
 
             if warehouse_id and goods_qty:
                 subtotal, price = self.pool.get('goods').get_suggested_cost_by_warehouse(
@@ -161,7 +180,6 @@ class wh_move_line(osv.osv):
                 lots.append({
                         'name': line.name,
                         'goods_qty': line.goods_qty,
-                        'note': line.note,
                     })
 
             res.update({move.id: template.render({'lots': lots}).strip()})
@@ -175,7 +193,9 @@ class wh_move_line(osv.osv):
         'state': fields.selection(MOVE_LINE_STATE, u'状态', copy=False),
         'goods_id': fields.many2one('goods', string=u'产品', required=True, index=True),
         'using_batch': fields.related('goods_id', 'using_batch', type='boolean', string=u'批次管理'),
+        'force_batch_one': fields.related('goods_id', 'force_batch_one', type='boolean', string=u'每批次数量为1'),
         'lot_ids': fields.one2many('wh.lot', 'line_id', string=u'批次', copy=False),
+        'consume_lot_ids': fields.one2many('wh.lot.consume', 'line_id', u'消耗的批次'),
         'production_date': fields.date(u'生产日期'),
         'shelf_life': fields.integer(u'保质期(天)'),
         'valid_date': fields.date(u'有效期至'),
@@ -183,7 +203,7 @@ class wh_move_line(osv.osv):
         'warehouse_id': fields.many2one('warehouse', string=u'调出仓库', required=True),
         'warehouse_dest_id': fields.many2one('warehouse', string=u'调入仓库', required=True),
         'goods_qty': fields.float(u'数量', digits_compute=dp.get_precision('Goods Quantity')),
-        'goods_qty_html': fields.function(_get_goods_qty_html, type='text', string=u'数量'),
+        'goods_qty_html': fields.function(_get_goods_qty_html, type='text', string=u'序列号'),
         'price': fields.float(u'单价', digits_compute=dp.get_precision('Accounting')),
         'subtotal': fields.float(u'金额', digits_compute=dp.get_precision('Accounting')),
         # 'subtotal': fields.function(_get_subtotal, type='float', string=u'金额',
