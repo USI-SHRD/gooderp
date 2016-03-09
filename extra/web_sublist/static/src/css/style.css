@@ -1,5 +1,7 @@
 
-.openerp table.oe_list_content td:not(.oe_list_field_relation_sublist) {
+.openerp table.oe_list_content td:not(.oe_list_field_relation_sublist),
+.openerp div.oe_form_container span.oe_form_field
+{
     vertical-align: middle !important;
 }
 
