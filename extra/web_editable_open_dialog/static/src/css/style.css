@@ -5,10 +5,6 @@ a.open_dialog {
     top: 1px;
 }
 
-/*.oe_form_container input {
-    text-align: left !important;
-}*/
-
 span.readonly_open_dialog {
     cursor: pointer;
 }

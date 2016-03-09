@@ -8,12 +8,17 @@ openerp.web_editable_open_dialog = function(instance) {
                 _.each(self.columns, function(column) {
                     if (column.options && _.isString(column.options) && column.options.indexOf('open_dialog') != -1) {
                         if (column.options.indexOf('set_one2many_readonly') != -1) {
-                            var $td = self.$el.find('.oe_form_container [data-fieldname=' + column.id + ']');
+                            var $td = self.$el.find('.oe_form_container [data-fieldname=' + column.id + ']'),
+                                current_field = self.editor.form.fields[column.id];
+
                             $td.addClass('readonly_open_dialog');
                             $td.click(function(e) {
                                 e.preventDefault();
                                 e.stopPropagation();
-                                self.do_open_one2many_popup(instance.web.py_eval(column.options || '{}'));
+
+                                if (current_field.get('readonly')) {
+                                    self.do_open_one2many_popup(instance.web.py_eval(column.options || '{}'));
+                                };
                             });
                         } else if (column.options.indexOf('set_one2many') != -1) {
                             var dialog = self.$el.find('.oe_form_container [data-fieldname=' + column.id + '] a.open_dialog');
@@ -88,7 +93,7 @@ openerp.web_editable_open_dialog = function(instance) {
 
                 var set_pop_value = function() {
                     try {
-                        pop.view_form.fields.lot_id.set_value(history_value);
+                        pop.view_form.fields[field_column.id].set_value(history_value);
                     } catch(e) {
                         setTimeout(set_pop_value, 100);
                     }

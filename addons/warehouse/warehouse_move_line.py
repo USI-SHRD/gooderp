@@ -120,7 +120,7 @@ class wh_move_line(osv.osv):
         # TODO 需要计算保质期
         if goods_id:
             goods = self.pool.get('goods').browse(cr, uid, goods_id, context=context)
-            return {'value': {'uom_id': goods.uom_id.id}}
+            return {'value': {'uom_id': goods.uom_id.id, 'using_batch': goods.using_batch}}
 
         return {}
 
@@ -157,7 +157,7 @@ class wh_move_line(osv.osv):
         res = {}
         for move in self.browse(cr, uid, ids, context=context):
             lots = []
-            for line in move.lot_id:
+            for line in move.lot_ids:
                 lots.append({
                         'name': line.name,
                         'goods_qty': line.goods_qty,
@@ -174,7 +174,8 @@ class wh_move_line(osv.osv):
         'type': fields.selection(MOVE_LINE_TYPE, u'类型'),
         'state': fields.selection(MOVE_LINE_STATE, u'状态', copy=False),
         'goods_id': fields.many2one('goods', string=u'产品', required=True, index=True),
-        'lot_id': fields.one2many('wh.lot', 'line_id', string=u'批次', copy=False),
+        'using_batch': fields.related('goods_id', 'using_batch', type='boolean', string=u'批次管理'),
+        'lot_ids': fields.one2many('wh.lot', 'line_id', string=u'批次', copy=False),
         'production_date': fields.date(u'生产日期'),
         'shelf_life': fields.integer(u'保质期(天)'),
         'valid_date': fields.date(u'有效期至'),
