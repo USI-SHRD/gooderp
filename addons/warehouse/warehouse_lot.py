@@ -52,8 +52,22 @@ class wh_lot(osv.osv):
 class wh_lot_consume(osv.osv):
     _name = 'wh.lot.consume'
 
+    def onchange_lot(self, cr, uid, ids, lot_id, context=None):
+        if lot_id:
+            lot = self.pool.get('wh.lot').browse(cr, uid, lot_id, context=context)
+            return {'value': {'qty_remaining': lot.qty_remaining, 'goods_qty': lot.qty_remaining}}
+
+        return {'value': {'qty_remaining': 0, 'goods_qty': 0}}
+
+    def onchange_qty(self, cr, uid, ids, qty_remaining, goods_qty, context=None):
+        if qty_remaining and goods_qty and qty_remaining < goods_qty:
+            return {'value': {'goods_qty': qty_remaining}}
+
+        return {}
+
     _columns = {
         'lot_id': fields.many2one('wh.lot', u'批次', required=True),
+        'qty_remaining': fields.float(u'剩余数量', digits_compute=dp.get_precision('Goods Quantity')),
         'line_id': fields.many2one('wh.move.line', u'移库单', required=True),
         'goods_qty': fields.float(u'数量', digits_compute=dp.get_precision('Goods Quantity')),
     }

@@ -182,6 +182,13 @@ class wh_move_line(osv.osv):
                         'goods_qty': line.goods_qty,
                     })
 
+            if not lots:
+                for line in move.consume_lot_ids:
+                    lots.append({
+                            'name': line.lot_id.name,
+                            'goods_qty': line.goods_qty,
+                        })
+
             res.update({move.id: template.render({'lots': lots}).strip()})
 
         return res
