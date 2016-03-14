@@ -4,9 +4,9 @@
         
         <!--根菜单-->
         
-        <menuitem id='scm_menu' name='进销存'/>
+        <menuitem id='scm_menu' name='设置'/>
         
-        <menuitem id='config_menu' name='设置' parent='scm_menu'/>
+        <menuitem id='config_menu' name='辅助资料' parent='scm_menu'/>
         
         <!--类别-->
         
@@ -89,5 +89,87 @@
             <field name="act_window_id" ref="company_action"/>
         </record>
         <menuitem id='company_menu' action='company_action' parent='config_menu'/>
+        <!--单位-->
+        <record id="uom_tree" model="ir.ui.view">
+            <field name="name">uom.tree</field>
+            <field name="model">uom</field>
+            <field name="arch" type="xml">
+                <tree string="单位">                  
+                    <field name="name"/>
+                </tree>
+            </field>
+        </record>
+
+        <record id="uom_action" model="ir.actions.act_window">
+            <field name="name">单位</field>
+            <field name="res_model">uom</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="view_type">form</field>
+            <field name="view_mode">tree</field>
+        </record>
+        
+        <menuitem id='uom_menu' action='uom_action' parent='config_menu'/>
+        <!--单位-->
+        <record id="settle_mode_tree" model="ir.ui.view">
+            <field name="name">settle.mode.tree</field>
+            <field name="model">settle.mode</field>
+            <field name="arch" type="xml">
+                <tree string="结算方式">                  
+                    <field name="name"/>
+                </tree>
+            </field>
+        </record>
+
+        <record id="settle_mode_action" model="ir.actions.act_window">
+            <field name="name">结算方式</field>
+            <field name="res_model">settle.mode</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="view_type">form</field>
+            <field name="view_mode">tree</field>
+        </record>
+        
+        <menuitem id='uom_menu' action='uom_action' parent='config_menu'/>
+        <!--往来单位-->
+        <record id="partner_tree" model="ir.ui.view">
+            <field name="name">partner.tree</field>
+            <field name="model">partner</field>
+            <field name="arch" type="xml">
+                <tree string="往来单位">                  
+                    <field name="name"/>
+                    <field name="c_category_id"/>
+                    <field name="s_category_id"/>
+                </tree>
+            </field>
+        </record>
+
+        <record id="partner_action" model="ir.actions.act_window">
+            <field name="name">往来单位</field>
+            <field name="res_model">partner</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="view_type">form</field>
+            <field name="view_mode">tree</field>
+        </record>
+        
+        <menuitem id='partner_menu' action='partner_action' parent='config_menu'/>
+        <!--账户-->
+        <record id="bank_account_tree" model="ir.ui.view">
+            <field name="name">bank.account.tree</field>
+            <field name="model">bank.account</field>
+            <field name="arch" type="xml">
+                <tree string="账户">                  
+                    <field name="name"/>
+                </tree>
+            </field>
+        </record>
+
+        <record id="bank_account_action" model="ir.actions.act_window">
+            <field name="name">账户</field>
+            <field name="res_model">bank.account</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="view_type">form</field>
+            <field name="view_mode">tree</field>
+        </record>
+        
+        <menuitem id='bank_account_menu' action='bank_account_action' parent='config_menu'/>
     </data>
 </openerp>
