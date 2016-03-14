@@ -43,7 +43,7 @@ class uom(osv.osv):
         'name':fields.char(u'名称'),
                 }
 class settle_mode(osv.osv):
-    name = 'settle.mode'
+    _name = 'settle.mode'
     _columns = {
         'name':fields.char(u'名称'),
                 }
