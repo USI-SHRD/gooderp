@@ -20,18 +20,20 @@
 ##############################################################################
 
 {
-    "name": "Warehouse Management",
+    "name": "GOODERP Warehouse Management",
     "version": "0.1",
     "author": 'ZhengXiang',
     "website": "http://www.osbzr.com",
     "category": "Generic Modules",
-    "depends": ['core', 'decimal_precision'],
+    "depends": ['core', 'decimal_precision', 'web_readonly_bypass', 'web_sublist', 'web_editable_open_dialog'],
     "description": """
     """,
     "data": [
+        'wizard/save_bom_view.xml',
         'view/assets_backend.xml',
         'view/warehouse_view.xml',
         'view/inventory_view.xml',
+        'view/production_view.xml',
         'action/warehouse_action.xml',
         'menu/warehouse_menu.xml',
         'data/warehouse_data.xml',
