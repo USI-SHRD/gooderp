@@ -21,7 +21,6 @@
         <menuitem id='wh_move_matching_menu' action='wh_move_matching_action' parent='warehouse_setting' sequence='1' />
         <menuitem id='wh_move_line_menu' action='wh_move_line_action' parent='warehouse_setting' sequence='2' />
         <menuitem id='wh_bom_menu' action='wh_bom_action' parent='warehouse_setting' sequence='3' />
-        <menuitem id='wh_lot_menu' action='wh_lot_action' parent='warehouse_setting' sequence='4' />
 
     </data>
 </openerp>

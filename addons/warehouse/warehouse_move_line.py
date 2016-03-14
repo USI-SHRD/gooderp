@@ -38,15 +38,23 @@ class wh_move_line(osv.osv):
             return safe_division(line.subtotal, line.goods_qty)
 
     def name_get(self, cr, uid, ids, context=None):
+        context = context or {}
         res = []
         for line in self.browse(cr, uid, ids, context=context):
-            res.append((line.id, '%s-%s->%s(%s, %s%s)' %
-                (line.move_id.name, line.warehouse_id.name, line.warehouse_dest_id.name,
-                    line.goods_id.name, str(line.goods_qty), line.uom_id.name)))
+            if context.get('lot'):
+                res.append((line.id, '%s-%s' % (line.lot, line.qty_remaining)))
+            else:
+                res.append((line.id, '%s-%s->%s(%s, %s%s)' %
+                    (line.move_id.name, line.warehouse_id.name, line.warehouse_dest_id.name,
+                        line.goods_id.name, str(line.goods_qty), line.uom_id.name)))
         return res
 
     def check_availability(self, cr, uid, ids, context=None):
-        pass
+        for line in self.browse(cr, uid, ids, context=context):
+            if line.warehouse_dest_id.id == line.warehouse_id.id:
+                raise osv.except_osv(u'错误', u'调出仓库不可以和调入仓库一样')
+
+        return True
 
     def prev_action_done(self, cr, uid, ids, context=None):
         pass
@@ -92,18 +100,8 @@ class wh_move_line(osv.osv):
     def _get_subtotal_util(self, cr, uid, goods_qty, price, context=None):
         return goods_qty * price
 
-    # def _get_subtotal(self, cr, uid, ids, fields_name, arg, context=None):
-    #     res = {}
-    #     for line in self.browse(cr, uid, ids, context=context):
-    #         res.update({line.id: self._get_subtotal_util(
-    #             cr, uid, line.goods_qty, line.price, context=context)})
-
-    #     return res
-
     def onchange_price_by_out(self, cr, uid, ids, goods_id, warehouse_id, goods_qty, context=None):
         if goods_id and warehouse_id and goods_qty:
-            # price = self.pool.get('goods').get_cost_by_warehouse(
-                # cr, uid, goods_id, warehouse_id, goods_id, context=context)
             subtotal, price = self.pool.get('goods').get_suggested_cost_by_warehouse(
                 cr, uid, goods_id, warehouse_id, goods_qty, context=context)
 
@@ -121,13 +119,7 @@ class wh_move_line(osv.osv):
 
         return {'value': {'subtotal': 0}}
 
-    def onchange_subtotal_by_in(self, cr, uid, ids, subtotal, goods_qty, context=None):
-        if subtotal and goods_qty:
-            return {'value': {'price': safe_division(subtotal, goods_qty)}}
-
-        return {}
-
-    def onchange_goods_by_in(self, cr, uid, ids, goods_id, context=None):
+    def onchange_goods_by_in(self, cr, uid, ids, goods_id, goods_qty, context=None):
         # TODO 需要计算保质期
         if goods_id:
             goods = self.pool.get('goods').browse(cr, uid, goods_id, context=context)
@@ -135,12 +127,23 @@ class wh_move_line(osv.osv):
                 'uom_id': goods.uom_id.id,
                 'using_batch': goods.using_batch,
                 'force_batch_one': goods.force_batch_one,
+                'goods_qty': goods.force_batch_one and 1 or goods_qty,
             }}
 
         return {}
 
-    def onchange_goods_by_out(self, cr, uid, ids, goods_id, warehouse_id, goods_qty, context=None):
+    def onchange_lot_out(self, cr, uid, ids, lot_id, context=None):
+        if lot_id:
+            lot = self.browse(cr, uid, lot_id, context=context)
+            return {'value': {'warehouse_id': lot.warehouse_dest_id.id,
+                'goods_qty': lot.qty_remaining, 'lot_qty': lot.qty_remaining}}
+
+        return {}
+
+    def onchange_goods_by_out(self, cr, uid, ids, goods_id, warehouse_id, lot_id, goods_qty, compute_price=True, context=None):
         res = {}
+        lot_domain = [('goods_id', '=', goods_id), ('state', '=', 'done'), ('lot', '!=', False), ('qty_remaining', '>', 0)]
+
         if goods_id:
             goods = self.pool.get('goods').browse(cr, uid, goods_id, context=context)
             res.update({
@@ -149,19 +152,30 @@ class wh_move_line(osv.osv):
                 'force_batch_one': goods.force_batch_one,
             })
 
-            if warehouse_id and goods_qty:
-                subtotal, price = self.pool.get('goods').get_suggested_cost_by_warehouse(
-                    cr, uid, goods_id, warehouse_id, goods_qty, context=context)
+            if warehouse_id:
+                if compute_price and goods_qty:
+                    subtotal, price = self.pool.get('goods').get_suggested_cost_by_warehouse(
+                        cr, uid, goods_id, warehouse_id, goods_qty, context=context)
 
-                res.update({
-                        'price': price,
-                        'subtotal': subtotal,
-                    })
+                    res.update({
+                            'price': price,
+                            'subtotal': subtotal,
+                        })
 
-        return {'value': res}
+                lot_domain.append(('warehouse_dest_id', '=', warehouse_id))
 
-    def onchange_goods_by_internal(self, cr, uid, ids, goods_id, context=None):
-        return self.onchange_goods_by_in(cr, uid, ids, goods_id, context=context)
+        if lot_id:
+            lot = self.browse(cr, uid, lot_id, context=context)
+            if warehouse_id and lot.warehouse_dest_id.id != warehouse_id:
+                res.update({'lot_id': False})
+
+            if goods_id and lot.goods_id.id != goods_id:
+                res.update({'lot_id': False})
+
+        return {'value': res, 'domain': {'lot_id': lot_domain}}
+
+    def onchange_goods_by_internal(self, cr, uid, ids, goods_id, goods_qty, context=None):
+        return self.onchange_goods_by_in(cr, uid, ids, goods_id, goods_qty, context=context)
 
     def unlink(self, cr, uid, ids, context=None):
         for line in self.browse(cr, uid, ids, context=context):
@@ -169,29 +183,6 @@ class wh_move_line(osv.osv):
                 raise osv.except_osv(u'错误', u'不可以删除已经完成的明细')
 
         return super(wh_move_line, self).unlink(cr, uid, ids, context=context)
-
-    def _get_goods_qty_html(self, cr, uid, ids, field_name, arg, context=None):
-        template = env.get_template('move_lot.html')
-
-        res = {}
-        for move in self.browse(cr, uid, ids, context=context):
-            lots = []
-            for line in move.lot_ids:
-                lots.append({
-                        'name': line.name,
-                        'goods_qty': line.goods_qty,
-                    })
-
-            if not lots:
-                for line in move.consume_lot_ids:
-                    lots.append({
-                            'name': line.lot_id.name,
-                            'goods_qty': line.goods_qty,
-                        })
-
-            res.update({move.id: template.render({'lots': lots}).strip()})
-
-        return res
 
     _columns = {
         'move_id': fields.many2one('wh.move', string=u'移库单', ondelete='cascade'),
@@ -201,8 +192,9 @@ class wh_move_line(osv.osv):
         'goods_id': fields.many2one('goods', string=u'产品', required=True, index=True),
         'using_batch': fields.related('goods_id', 'using_batch', type='boolean', string=u'批次管理'),
         'force_batch_one': fields.related('goods_id', 'force_batch_one', type='boolean', string=u'每批次数量为1'),
-        'lot_ids': fields.one2many('wh.lot', 'line_id', string=u'批次', copy=False),
-        'consume_lot_ids': fields.one2many('wh.lot.consume', 'line_id', u'消耗的批次'),
+        'lot': fields.char(u'序列号'),
+        'lot_id': fields.many2one('wh.move.line', u'序列号'),
+        'lot_qty': fields.related('lot_id', 'qty_remaining', type='float', string=u'序列号数量'),
         'production_date': fields.date(u'生产日期'),
         'shelf_life': fields.integer(u'保质期(天)'),
         'valid_date': fields.date(u'有效期至'),
@@ -210,13 +202,8 @@ class wh_move_line(osv.osv):
         'warehouse_id': fields.many2one('warehouse', string=u'调出仓库', required=True),
         'warehouse_dest_id': fields.many2one('warehouse', string=u'调入仓库', required=True),
         'goods_qty': fields.float(u'数量', digits_compute=dp.get_precision('Goods Quantity')),
-        'goods_qty_html': fields.function(_get_goods_qty_html, type='text', string=u'序列号'),
         'price': fields.float(u'单价', digits_compute=dp.get_precision('Accounting')),
         'subtotal': fields.float(u'金额', digits_compute=dp.get_precision('Accounting')),
-        # 'subtotal': fields.function(_get_subtotal, type='float', string=u'金额',
-        #     digits_compute=dp.get_precision('Accounting'), store={
-        #         'wh.move.line': (lambda self, cr, uid, ids, ctx=None: ids, ['price', 'goods_qty'], 10),
-        #     }),
         'note': fields.text(u'备注'),
     }
 
