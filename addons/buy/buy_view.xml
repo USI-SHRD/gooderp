@@ -29,8 +29,8 @@
                 <form string="Buy Order">
                 <header>
                 	<button name="buy_approve" states="draft" string="审核" type="object" class="oe_highlight"/>
-                	<button name="buy_refuse" states="approved" string="反审核" type="object"/>
-                    <button name="buy_generate_order" states="approved" string="生成采购入库单" type="object" class="oe_highlight"/>
+                	<button name="buy_refuse" states="approved,confirmed" string="反审核" type="object"/>
+                    <button name="buy_generate_order" states="approved,confirmed" string="生成采购入库单" type="object" class="oe_highlight"/>
                     <field name="state" widget="statusbar" statusbar_visible="draft,approved,confirmed" statusbar_colors='{"approved":"blue"}' readonly="1"/>
                 </header>
                 <sheet>
@@ -52,7 +52,7 @@
                     </group>
                     <field name="line_ids">
                     	<tree string="Buy Order Lines" editable="bottom">
-                            <field name="goods_id"/>
+                            <field name="goods_id" on_change="onchange_goods_id(goods_id)"/>
                             <field name="spec"/>
                             <field name="uom_id"/>
                             <field name="warehouse_id"/>
@@ -68,8 +68,9 @@
                         </tree>
                     </field>
                     <group>
+                    	<field name="total" readonly="1"/>
                         <group col="6" colspan="6">
-                            <field name="discount_rate" on_change="onchange_discount_rate(discount_rate)"/>
+                            <field name="discount_rate"/>
                             <field name="discount_amount"/>
                             <field name="amount"/>
                         </group>
@@ -154,7 +155,7 @@
                     </field>
                     <group>
                         <group col="8" colspan="8">
-                            <field name="discount_rate" on_change="onchange_discount_rate(discount_rate)"/>
+                            <field name="discount_rate"/>
                             <field name="discount_amount"/>
                             <field name="amount"/>
                             <field name="payment"/>
