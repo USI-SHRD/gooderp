@@ -33,6 +33,7 @@
                                 <group>
                                     <group>
                                         <field name='using_batch' />
+                                        <field name='attribute_ids'/>
                                     </group>
                                     <group>
                                         <field name='force_batch_one' attrs="{'invisible': [('using_batch', '=', False)]}" />
@@ -44,6 +45,25 @@
                 </form>
             </field>
         </record>
-
+        <record id='attribute_form' model='ir.ui.view'>
+            <field name='name'>attribute.form</field>
+            <field name='model'>attribute</field>
+            <field name='arch' type='xml'>
+                <form string='属性'>
+                    <field name='name'/>
+                    <field name='value_ids' />
+                </form>
+            </field>
+        </record>
+        <record id='attribute_value_form' model='ir.ui.view'>
+            <field name='name'>attribute.value.form</field>
+            <field name='model'>attribute.value</field>
+            <field name='arch' type='xml'>
+                <form string='属性值'>
+                    <field name='category_id'/>
+                    <field name='value_id' />
+                </form>
+            </field>
+        </record>
     </data>
 </openerp>

@@ -6,7 +6,8 @@ CORE_CATEGORY_TYPE = [('customer',u'客户'),
                       ('supplier',u'供应商'),
                       ('goods',u'商品'),
                       ('payment',u'支出'),
-                      ('receipt',u'收入'),]
+                      ('receipt',u'收入'),
+                      ('attribute',u'属性')]
 CORE_COST_METHOD = [('average',u'移动平均法'),
                     ('fifo',u'先进先出法'),
                     ]
