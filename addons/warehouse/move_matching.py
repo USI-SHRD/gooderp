@@ -100,7 +100,7 @@ class wh_move_line(osv.osv):
             store={
                 'wh.move.matching': (_get_moves_from_matchings, ['qty', 'move_in_id', 'move_out_id'], 10),
                 'wh.move.line': (lambda self, cr, uid, ids, ctx: ids, ['goods_qty', 'warehouse_id'], 10)
-            }, index=True),
+            }, digits_compute=dp.get_precision('Goods Quantity'), index=True),
 
         'matching_in_ids': fields.one2many('wh.move.matching', 'line_in_id'),
         'matching_out_ids': fields.one2many('wh.move.matching', 'line_out_id'),

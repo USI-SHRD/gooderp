@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<openerp>
+    <data>
+        <record id='report_stock_balance_tree' model='ir.ui.view'>
+            <field name='name'>report.stock.balance.tree</field>
+            <field name='model'>report.stock.balance</field>
+            <field name='arch' type='xml'>
+                <tree string='商品库存余额表'>
+                    <field name='goods' />
+                    <field name='lot' />
+                    <field name='uom' />
+                    <field name='warehouse' />
+                    <field name='goods_qty' />
+                    <field name='cost' />
+                </tree>
+            </field>
+        </record>
+
+        <record id='report_stock_balance_graph' model='ir.ui.view'>
+            <field name='name'>report.stock.balance.graph</field>
+            <field name='model'>report.stock.balance</field>
+            <field name='arch' type='xml'>
+                <graph type='pivot'>
+                    <field name='goods' type='row' />
+                    <field name='lot' type='row' />
+                    <field name='warehouse' type='col' />
+                    <field name='goods_qty' type='measure' />
+                    <field name='cost' type='measure' />
+                </graph>
+            </field>
+        </record>
+    </data>
+</openerp>

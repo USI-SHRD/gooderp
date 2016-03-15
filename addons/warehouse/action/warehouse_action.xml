@@ -85,5 +85,23 @@
             <field name='view_id' ref='wh_bom_tree' />
         </record>
 
+        <!-- 库存余额表 -->
+        <record id='report_stock_balance_action' model='ir.actions.act_window' >
+            <field name='name'>库存余额表</field>
+            <field name='res_model'>report.stock.balance</field>
+            <field name='view_mode'>graph,tree</field>
+            <field name='view_id' ref='report_stock_balance_graph' />
+        </record>
+
+        <!-- 商品收发明细表 -->
+        <record id='report_stock_transceive_wizard_action' model='ir.actions.act_window' >
+            <field name='name'>商品收发明细表</field>
+            <field name='res_model'>report.stock.transceive.wizard</field>
+            <field name='view_mode'>form</field>
+            <field name='target'>new</field>
+            <field name='view_id' ref='report_stock_transceive_wizard_form' />
+        </record>
+
+
     </data>
 </openerp>

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<openerp>
+    <data>
+        <record id='report_stock_transceive_tree' model='ir.ui.view'>
+            <field name='name'>report.stock.transceive.tree</field>
+            <field name='model'>report.stock.transceive</field>
+            <field name='arch' type='xml'>
+                <tree string='商品库存余额表'>
+                    <field name='goods' />
+                    <field name='lot' />
+                    <field name='uom' />
+                    <field name='warehouse' />
+                    <field name='goods_qty_begain' />
+                    <field name='cost_begain' />
+                </tree>
+            </field>
+        </record>
+
+        <record id='report_stock_transceive_graph' model='ir.ui.view'>
+            <field name='name'>report.stock.transceive.graph</field>
+            <field name='model'>report.stock.transceive</field>
+            <field name='arch' type='xml'>
+                <graph type='pivot'>
+                    <field name='goods' type='row' />
+                    <field name='lot' type='row' />
+                    <field name='warehouse' type='col' />
+                    <field name='goods_qty_begain' type='measure' />
+                    <field name='cost_begain' type='measure' />
+                </graph>
+            </field>
+        </record>
+
+    </data>
+</openerp>
