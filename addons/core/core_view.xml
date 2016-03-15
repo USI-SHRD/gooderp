@@ -149,6 +149,8 @@
             <field name="type">ir.actions.act_window</field>
             <field name="view_type">form</field>
             <field name="view_mode">tree</field>
+            <field name="view_id" ref="vendor_tree" />
+            <field name="domain">[('c_category_id','!=',False)]</field>
         </record>
         
         <menuitem id='customer_menu' action='customer_action' parent='master_data_menu' sequence='10'/>
@@ -170,6 +172,8 @@
             <field name="type">ir.actions.act_window</field>
             <field name="view_type">form</field>
             <field name="view_mode">tree</field>
+            <field name="view_id" ref="vendor_tree" />
+            <field name="domain">[('s_category_id','!=',False)]</field>
         </record>
         
         <menuitem id='vendor_menu' action='vendor_action' parent='master_data_menu' sequence='20'/>
