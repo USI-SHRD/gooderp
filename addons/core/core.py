@@ -1,79 +1,64 @@
 # -*- coding: utf-8 -*-
 
-from openerp.osv import osv, fields
+from openerp import models, fields, api
 
 CORE_CATEGORY_TYPE = [('customer',u'客户'),
                       ('supplier',u'供应商'),
                       ('goods',u'商品'),
                       ('payment',u'支出'),
-                      ('receipt',u'收入'),]
+                      ('receipt',u'收入'),
+                      ('attribute',u'属性')]
 CORE_COST_METHOD = [('average',u'移动平均法'),
                     ('fifo',u'先进先出法'),
                     ]
-class core_value(osv.osv):
+
+class core_value(models.Model):
     _name = 'core.value'
-    _columns = {
-        'name': fields.char(u'名称'),
-        'type': fields.char(u'类型'),
-               }
-    _defaults = {
-        'type':lambda self, cr, uid, ctx:ctx.get('type'),
-    }
-class core_category(osv.osv):
+    name = fields.Char(u'名称')
+    type = fields.Char(u'类型', default=lambda self: self._context.get('type'))
+
+class core_category(models.Model):
     _name = 'core.category'
-    _columns = {
-        'name': fields.char(u'名称'),
-        'type': fields.selection(CORE_CATEGORY_TYPE,u'类型'),
-               }
-    _defaults = {
-        'type':lambda self, cr, uid, ctx:ctx.get('type'),
-    }
-class res_company(osv.osv):
+    name = fields.Char(u'名称')
+    type = fields.Selection(CORE_CATEGORY_TYPE,u'类型',default=lambda self: self._context.get('type'))
+
+class res_company(models.Model):
     _inherit = 'res.company'
-    _columns = {
-        'start_date':fields.date(u'启用日期'),
-        'quantity_digits':fields.integer(u'数量小数位'),
-        'amount_digits':fields.integer(u'单价小数位'),
-        'cost_method':fields.selection(CORE_COST_METHOD,u'存货计价方法'),
-        'negtive_quantity':fields.boolean(u'是否检查负库存'),
-        }
-class uom(osv.osv):
+    start_date = fields.Date(u'启用日期')
+    quantity_digits = fields.Integer(u'数量小数位')
+    amount_digits = fields.Integer(u'单价小数位')
+    cost_method = fields.Selection(CORE_COST_METHOD,u'存货计价方法')
+    negtive_quantity = fields.Boolean(u'是否检查负库存')
+
+class uom(models.Model):
     _name = 'uom'
-    _columns = {
-        'name':fields.char(u'名称'),
-                }
-class settle_mode(osv.osv):
+    name = fields.Char(u'名称')
+
+class settle_mode(models.Model):
     _name = 'settle.mode'
-    _columns = {
-        'name':fields.char(u'名称'),
-                }
-class partner(osv.osv):
+    name = fields.Char(u'名称')
+
+class partner(models.Model):
     _name = 'partner'
-    _columns = {
-        'name': fields.char(u'名称'),
-        'c_category_id': fields.many2one('core.category',u'客户类别',
-                                       domain=[('type','=','customer')],context={'type':'customer'}),
-        's_category_id': fields.many2one('core.category',u'供应商类别',
-                                       domain=[('type','=','supplier')],context={'type':'supplier'}),
-               }
-class goods(osv.osv):
+    name = fields.Char(u'名称')
+    c_category_id = fields.Many2one('core.category',u'客户类别',
+                                       domain=[('type','=','customer')],context={'type':'customer'})
+    s_category_id = fields.Many2one('core.category',u'供应商类别',
+                                       domain=[('type','=','supplier')],context={'type':'supplier'})
+
+class goods(models.Model):
     _name = 'goods'
-    _columns = {
-        'name':fields.char(u'名称'),
-        'uom_id':fields.many2one('uom',u'计量单位'),
-                }
-class warehouse(osv.osv):
+    name = fields.Char(u'名称')
+    uom_id = fields.Many2one('uom',u'计量单位')
+
+class warehouse(models.Model):
     _name = 'warehouse'
-    _columns = {
-        'name':fields.char(u'名称'),
-                }
-class staff(osv.osv):
+    name = fields.Char(u'名称')
+
+class staff(models.Model):
     _name = 'staff'
-    _columns = {
-        'name': fields.char(u'名称'),
-                }    
-class bank_account(osv.osv):
+    name = fields.Char(u'名称')
+
+class bank_account(models.Model):
     _name = 'bank.account'
-    _columns = {
-        'name':fields.char(u'名称'),
-                }
+    name = fields.Char(u'名称')
