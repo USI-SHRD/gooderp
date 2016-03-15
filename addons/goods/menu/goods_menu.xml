@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<openerp>
+    <data>
+        <menuitem id='basic_infomation_menu' parent='core.scm_menu' name='基础资料' sequence='1' />
+        <menuitem id='goods_menu' parent='basic_infomation_menu' action='goods_action' sequence='1' />
+    </data>
+</openerp>

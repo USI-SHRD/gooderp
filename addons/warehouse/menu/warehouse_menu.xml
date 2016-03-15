@@ -9,6 +9,8 @@
         <menuitem id='wh_inventory_menu' action='wh_inventory_action' name='盘点单' parent='warehouse_order' sequence='2' />
         <menuitem id='wh_in_menu' action='wh_in_action' name='其他入库单' parent='warehouse_order' sequence='3' />
         <menuitem id='wh_out_menu' action='wh_out_action' name='其他出库单' parent='warehouse_order' sequence='4' />
+        <menuitem id='wh_assembly_menu' action='wh_assembly_action' parent='warehouse_order' sequence='5' />
+        <menuitem id='wh_disassembly_menu' action='wh_disassembly_action' parent='warehouse_order' sequence='6' />
 
         <!-- 仓库 -->
         <menuitem id='warehouse_parent' name='仓库' parent='warehouse_root' sequence='2' />
@@ -18,6 +20,8 @@
         <menuitem id='warehouse_setting' name='设置' parent='warehouse_root' sequence='100' />
         <menuitem id='wh_move_matching_menu' action='wh_move_matching_action' parent='warehouse_setting' sequence='1' />
         <menuitem id='wh_move_line_menu' action='wh_move_line_action' parent='warehouse_setting' sequence='2' />
+        <menuitem id='wh_bom_menu' action='wh_bom_action' parent='warehouse_setting' sequence='3' />
+        <menuitem id='wh_lot_menu' action='wh_lot_action' parent='warehouse_setting' sequence='4' />
 
     </data>
 </openerp>

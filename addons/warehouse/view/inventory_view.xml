@@ -70,6 +70,22 @@
                                 </tree>
                             </field>
                         </group>
+
+                        <group >
+                            <group >
+                                <field name='create_uid' string='制单人' readonly='1' />
+                                <field name='create_date' string='录单时间' readonly='1' />
+                            </group>
+                            <group >
+                                <field name='write_uid' string='最后修改人' readonly='1' />
+                                <field name='write_date' string='最后修改时间' readonly='1' />
+                            </group>
+                        </group>
+
+                        <group>
+                            <field name='note' nolabel='1' placeholder='备注。。。' />
+                        </group>
+                        
                     </sheet>
                 </form>
             </field>

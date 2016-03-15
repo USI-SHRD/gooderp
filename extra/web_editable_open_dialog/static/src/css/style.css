@@ -1,0 +1,10 @@
+
+a.open_dialog {
+    position: absolute;
+    left: 6px;
+    top: 1px;
+}
+
+span.readonly_open_dialog {
+    cursor: pointer;
+}
