@@ -20,6 +20,8 @@
 ##############################################################################
 
 from openerp.osv import fields, osv
+from openerp import models, api, _
+from openerp import fields as Fields
 
 BUY_ORDER_STATES = [
         ('draft', '草稿'),
@@ -36,79 +38,70 @@ class buy_order(osv.osv):
     _description = u"采购订单"
     _order = 'date desc, id desc'
 
-    _columns = {
-        'partner_id': fields.many2one('partner', u'供应商', required=True, states=READONLY_STATES),
-        'date': fields.date(u'单据日期', states=READONLY_STATES,
-                select=True, help=u"描述了询价单转换成采购订单的日期，默认是订单创建日期。", copy=False),
-        'planned_date':fields.date(u'交货日期', states=READONLY_STATES, select=True, help=u"订单的预计交货日期"),
-        'name': fields.char(u'单据编号', required=True, select=True, copy=False,
-                help=u"采购订单的唯一编号，当创建时它会自动生成有序编号。"),
-        'type': fields.selection([('buy','购货'),('return','退货')], u'类型'),
-        'line_ids': fields.one2many('buy.order.line', 'order_id', u'采购订单行', states=READONLY_STATES, copy=True),
-        'notes': fields.text(u'备注', states=READONLY_STATES),
-        'discount_rate': fields.float(u'优惠率(%)', states=READONLY_STATES),
-        'discount_amount': fields.float(u'优惠金额', states=READONLY_STATES),
-        'amount': fields.float(u'优惠后金额', states=READONLY_STATES,),
-        'validator_id': fields.many2one('res.users', u'审核人', copy=False),
-        'state': fields.selection(BUY_ORDER_STATES, u'状态', readonly=True, help=u"采购订单的状态", select=True, copy=False),     
-    }
-    _defaults = {
-        'date': fields.date.context_today,
-        'planned_date': fields.date.context_today,
-        'name': lambda self, cr, uid, context: \
-                        self.pool.get('ir.sequence').get(cr, uid, 'buy.order', context=context),
-        'type': 'buy',
-        'state': 'draft',
-    }
+    @api.one
+    @api.depends('line_ids.subtotal', 'discount_rate')
+    def _compute_amount(self):
+        self.total = sum(line.subtotal for line in self.line_ids)
+        self.discount_amount = self.total * self.discount_rate * 0.01
+        self.amount = self.total - self.discount_amount
+
+#     @api.model
+#     def _default_name(self):
+#         return self.env['ir.sequence'].get('buy.order')
+
+    partner_id = Fields.Many2one('partner', u'供应商', required=True, states=READONLY_STATES)
+    date = Fields.Date(u'单据日期', states=READONLY_STATES, default=lambda self: Fields.Date.context_today(self),
+            select=True, help=u"描述了询价单转换成采购订单的日期，默认是订单创建日期。", copy=False)
+    planned_date = Fields.Date(u'交货日期', states=READONLY_STATES, default=lambda self: Fields.Date.context_today(self), select=True, help=u"订单的预计交货日期")
+    name = Fields.Char(u'单据编号', required=True, select=True, copy=False,
+        default=lambda self: self.env['ir.sequence'].get('buy.order'), help=u"采购订单的唯一编号，当创建时它会自动生成有序编号。")
+    type = Fields.Selection([('buy','购货'),('return','退货')], u'类型', default='buy')
+    line_ids = Fields.One2many('buy.order.line', 'order_id', u'采购订单行', states=READONLY_STATES, copy=True)
+    notes = Fields.Text(u'备注', states=READONLY_STATES)
+    discount_rate = Fields.Float(u'优惠率(%)', states=READONLY_STATES)
+    validator_id = Fields.Many2one('res.users', u'审核人', copy=False)
+    state = Fields.Selection(BUY_ORDER_STATES, u'状态', readonly=True, help=u"采购订单的状态", select=True, copy=False, default='draft')
+    total = Fields.Float(string=u'合计', store=True,
+            compute='_compute_amount', track_visibility='always', help=u'所有订单行小计之和')
+    discount_amount = Fields.Float(string=u'优惠金额', store=True, states=READONLY_STATES,
+            compute='_compute_amount', track_visibility='always')
+    amount = Fields.Float(string=u'优惠后金额', store=True, states=READONLY_STATES,
+            compute='_compute_amount', track_visibility='always')
+
     _sql_constraints = [
         ('name_uniq', 'unique(name)', '采购订单号必须唯一!'),
     ]
 
-    def create(self, cr, uid, vals, context=None):
-        context = dict(context or {}, mail_create_nolog=True)
-        order =  super(buy_order, self).create(cr, uid, vals, context=context)
-        self.message_post(cr, uid, [order], body=u'购货订单已创建', context=context)
-        return order
-
-    def onchange_discount_rate(self, cr, uid, ids, discount_rate, context=None):
-        '''当优惠率改变时，改变优惠金额和优惠后金额'''
-        total = 0
-        for line in self.browse(cr, uid, ids, context=context).line_ids:
-            total += line.subtotal
-        discount_amount = total * discount_rate * 0.01
-        return {'value':{
-                         'discount_amount': discount_amount,
-                         'amount': total - discount_amount,
-                         }
-                }
-
-    def buy_approve(self, cr, uid, ids, context=None):
+    @api.multi
+    def buy_approve(self):
         '''审核购货订单'''
-        assert(len(ids) == 1), 'This option should only be used for a single id at a time'
-        self.write(cr, uid, ids, {'state': 'approved', 'validator_id': uid})
+        assert(len(self._ids) == 1), 'This option should only be used for a single id at a time'
+        self.write({'state': 'approved', 'validator_id': self._uid})
         return True
 
-    def buy_refuse(self, cr, uid, ids, context=None):
+    @api.multi
+    def buy_refuse(self):
         '''反审核购货订单'''
-        assert(len(ids) == 1), 'This option should only be used for a single id at a time'
-        self.write(cr, uid, ids, {'state': 'draft'})
+        assert(len(self._ids) == 1), 'This option should only be used for a single id at a time'
+        self.write({'state': 'draft'})
         return True
 
-    def buy_generate_order(self, cr, uid, ids, context=None):
+    @api.multi
+    def buy_generate_order(self):
         '''由购货订单生成采购入库单'''
-        assert(len(ids) == 1), 'This option should only be used for a single id at a time'
+        assert(len(self._ids) == 1), 'This option should only be used for a single id at a time'
 
         res = []
         dict = []
         ret = []
-        order = self.browse(cr, uid, ids, context=context)
+#         order = self.browse(self._ids)
 
-        for line in order.line_ids:
+        for line in self.line_ids:
             dict.append({
-                'goods_id': line.goods_id.id,
+                'goods_id': line.goods_id and line.goods_id.id or '',
                 'spec': line.spec,
                 'uom_id': line.uom_id.id,
-                'warehouse_id': line.warehouse_id.id,
+                'warehouse_id': line.warehouse_id and line.warehouse_id.id or '',
                 'goods_qty': line.quantity,
                 'price': line.price,
                 'discount_rate': line.discount_rate,
@@ -123,19 +116,19 @@ class buy_order(osv.osv):
 
         for i in range(len(dict)):
             ret.append((0, 0, dict[i]))
-        receipt_id = self.pool.get('buy.receipt').create(cr, uid, {
-                            'partner_id': order.partner_id.id,
+        receipt_id = self.pool.get('buy.receipt').create(self._cr, self._uid, {
+                            'partner_id': self.partner_id.id,
                             'line_in_ids': ret,
-                            'discount_rate': order.discount_rate,
-                            'discount_amount': order.discount_amount,
-                            'amount': order.amount,
+                            'discount_rate': self.discount_rate,
+                            'discount_amount': self.discount_amount,
+                            'amount': self.amount,
 #                             'debt':,
 #                             'total_cost':,
                             'state': 'draft',
-                        }, context=context)
+                        }, context=self._context)
         res.append(receipt_id)
-        view_id = self.pool.get('ir.model.data').xmlid_to_res_id(cr, uid, 'gooderp.buy_receipt_form')
-        self.write(cr, uid, ids, {'state': 'confirmed'})
+        view_id = self.env['ir.model.data'].xmlid_to_res_id('gooderp.buy_receipt_form')
+        self.write({'state': 'confirmed'})
         return {
             'name': u'采购入库单',
             'view_type': 'form',
@@ -168,6 +161,13 @@ class buy_order_line(osv.osv):
         'origin': fields.char(u'源单号'),
         'order_id': fields.many2one('buy.order', u'订单编号', select=True, required=True, ondelete='cascade'),
     }
+
+    def onchange_goods_id(self, cr, uid, ids, goods_id, context=None):
+        '''当订单行的产品变化时，带出产品上的单位'''
+        return {'value':{
+                         'uom_id': self.pool.get('goods').browse(cr, uid, goods_id, context=context).uom_id,
+                         }
+                }
 
     def onchange_price(self, cr, uid, ids, price, quantity, discount_rate, tax_rate, context=None):
         '''当订单行的数量、购货单价、折扣率、税率改变时，改变折扣额、金额、税额、价税合计'''
