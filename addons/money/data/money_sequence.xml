@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<openerp>
+    <data noupdate="1">
+        <!--  收款单序列号 --> 
+        <record id="seq_type_receipt_order" model="ir.sequence.type">
+            <field name="name">Receipt Order</field>
+            <field name="code">receipt_order</field>
+        </record>
+        <record id="seq_receipt_order" model="ir.sequence">
+            <field name="name">Receipt Order</field>
+            <field name="code">receipt_order</field>
+            <field name="prefix">GET%(year)s/</field>
+            <field name="padding">5</field>
+        </record>
+
+        <!--  付款单序列号 --> 
+        <record id="seq_type_payment_order" model="ir.sequence.type">
+            <field name="name">Payment Order</field>
+            <field name="code">payment_order</field>
+        </record>
+        <record id="seq_payment_order" model="ir.sequence">
+            <field name="name">Payment Order</field>
+            <field name="code">payment_order</field>
+            <field name="prefix">PAY%(year)s/</field>
+            <field name="padding">5</field>
+        </record>
+
+        <!--  其他收款单序列号 --> 
+        <record id="seq_type_other_receipt_order" model="ir.sequence.type">
+            <field name="name">Other Receipt Order</field>
+            <field name="code">other_receipt_order</field>
+        </record>
+        <record id="seq_other_receipt_order" model="ir.sequence">
+            <field name="name">Other Receipt Order</field>
+            <field name="code">other_receipt_order</field>
+            <field name="prefix">OTHER_GET%(year)s/</field>
+            <field name="padding">5</field>
+        </record>
+
+        <!--  其他付款单序列号 --> 
+        <record id="seq_type_other_payment_order" model="ir.sequence.type">
+            <field name="name">Other Payment Order</field>
+            <field name="code">other_payment_order</field>
+        </record>
+        <record id="seq_other_payment_order" model="ir.sequence">
+            <field name="name">Other Payment Order</field>
+            <field name="code">other_payment_order</field>
+            <field name="prefix">OTHER_PAY%(year)s/</field>
+            <field name="padding">5</field>
+        </record>
+
+        <!--  资金转账单序列号 --> 
+        <record id="seq_type_money_transfer_order" model="ir.sequence.type">
+            <field name="name">Money Transfer Order</field>
+            <field name="code">money_transfer_order</field>
+        </record>
+        <record id="seq_money_transfer_order" model="ir.sequence">
+            <field name="name">Money Transfer Order</field>
+            <field name="code">money_transfer_order</field>
+            <field name="prefix">Transfer%(year)s/</field>
+            <field name="padding">5</field>
+        </record>
+    </data>
+</openerp>

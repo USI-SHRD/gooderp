@@ -7,7 +7,9 @@
     'version': '8.0.0.1',
     'depends': ['core','base'],
     'data': [
-        'money_view.xml',
-        'money_sequence.xml',
+        'view/money_order_view.xml',
+        'view/other_money_order_view.xml',
+        'view/money_transfer_order_view.xml',
+        'data/money_sequence.xml',
         ]
 }

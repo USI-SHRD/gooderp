@@ -1,0 +1,122 @@
+<?xml version="1.0"?>
+<openerp>
+    <data>
+        <!--其他收入/支出tree-->
+    	<record id="other_money_order_tree" model="ir.ui.view">
+            <field name="name">other.money.order.tree</field>
+            <field name="model">other.money.order</field>
+            <field name="arch" type="xml">
+                <tree string="Other Money Order">
+                    <field name="name" string="单据编号"/>
+                    <field name="date"/>
+                    <field name="partner_id"/>
+                    <field name="total_amount"/>
+                    <field name="state"/>
+                </tree>
+            </field>
+        </record>
+
+        <!--其他收入/支出form-->
+        <record id="other_money_order_form" model="ir.ui.view">
+            <field name="name">other.money.order.form</field>
+            <field name="model">other.money.order</field>
+            <field name="arch" type="xml">
+                <form string="Other Money Order">
+                <header>
+                	<button name="print_other_money_order" states="done" string="打印" type="object" class="oe_highlight"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,done" readonly="1"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <label string="其他收入单 " invisible="context.get('default_other_payment') or False"/>
+                            <label string="其他支出单 " invisible="context.get('default_other_receipt') or False"/>
+                            <field name="name" class="oe_inline" readonly="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+				            <field name="partner_id"/>
+                        </group>
+                        <group>
+                            <field name="date"/>
+                        </group>
+                    </group>
+                    <field name="line_ids">
+                    	<tree string="Other Money Order Lines" editable="bottom">
+                    		<field name="other_money_type"/>
+                            <field name="amount" sum="合计"/>
+                            <field name="note"/>
+                       </tree>
+                    </field>
+                    <group>
+                    	<group>
+		                	<field name="bank_id"/>
+		                </group>
+		                <group>	
+		                	<field name="total_amount"/>
+		                </group>
+		            </group>
+		            <group>
+						<group>
+		                	<field name="create_date" string="录单时间" readonly="1"/>
+		                </group>
+		                <group>	
+		                	<field name="write_date" string="最后修改时间"  readonly="1"/>
+		                </group>
+		            </group>
+                </sheet>
+                </form>
+            </field>
+        </record>
+
+        <!-- 其他收款管理 action -->
+        <record id="other_money_receipt_action" model="ir.actions.act_window">
+            <field name="name">其他收款单</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">other.money.order</field>
+            <field name="view_mode">tree,form</field>
+            <field  name='context'>{'default_other_receipt':True}</field>
+            <field name="domain">[('type','=','other_receipts')]</field>
+            <field name="help" type="html">
+              <p class="oe_view_nocontent_create">
+                点击创建其他收款单
+              </p>
+            </field>
+        </record>
+        
+        <!-- 其他付款管理 action -->
+        <record id="other_money_payment_action" model="ir.actions.act_window">
+            <field name="name">其他付款单</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">other.money.order</field>
+            <field name="view_mode">tree,form</field>
+            <field  name='context'>{'default_other_payment':True}</field>
+            <field name="domain">[('type','=','other_payables')]</field>
+            <field name="help" type="html">
+              <p class="oe_view_nocontent_create">
+                点击创建其他付款单
+              </p>
+            </field>
+        </record>
+
+		<!--other.money.order form视图-->
+        <record id="other_money_order" model="ir.ui.view">
+            <field name="name">other.money.type</field>
+            <field name="model">other.money.type</field>
+            <field name="arch" type="xml">
+                <form string='rh_values'>
+                    <group>
+                        <field name="name"/>
+                        <field name="type" invisible="1"/>
+                    </group>
+                </form>
+            </field>
+        </record>
+
+		<!-- 其他收款单menu、其他付款单menu -->
+        <menuitem id="menu_other_money_receipt_action" action="other_money_receipt_action" parent="menu_money_manage" sequence="4"/>
+        <menuitem id="menu_other_money_payment_action" action="other_money_payment_action" parent="menu_money_manage" sequence="5"/>
+	</data>
+</openerp>
+	
