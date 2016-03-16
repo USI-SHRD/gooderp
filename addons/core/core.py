@@ -45,6 +45,8 @@ class partner(models.Model):
                                        domain=[('type','=','customer')],context={'type':'customer'})
     s_category_id = fields.Many2one('core.category',u'供应商类别',
                                        domain=[('type','=','supplier')],context={'type':'supplier'})
+    receivable = fields.Float(u'应收余额')
+    payable = fields.Float(u'应付余额')
 
 class goods(models.Model):
     _name = 'goods'
@@ -62,3 +64,4 @@ class staff(models.Model):
 class bank_account(models.Model):
     _name = 'bank.account'
     name = fields.Char(u'名称')
+    balance = fields.Float(u'余额')
