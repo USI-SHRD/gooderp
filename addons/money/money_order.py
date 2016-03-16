@@ -57,7 +57,6 @@ class money_order(models.Model):
     state = fields.Selection([
                           ('draft', u'未审核'),
                           ('done', u'已审核'),
-                          ('cancel', u'已取消')
                            ], string=u'状态', readonly=True, default='draft', copy=False)
     partner_id = fields.Many2one('partner', string=u'业务伙伴', required=True, readonly=True, states={'draft': [('readonly', False)]})
     date = fields.Date(string=u'单据日期', readonly=True, default=lambda self: fields.Date.context_today(self), states={'draft': [('readonly', False)]})
@@ -71,26 +70,25 @@ class money_order(models.Model):
 
     @api.multi
     def button_select_source_order(self):
-        if not self._ids:
-            return
-  
-        dummy, view_id = self.pool['ir.model.data'].get_object_reference(self._cr, self._uid, 'money', 'source_order_line_tree')
-#         line_ini = self.browse(self._cr, self._uid, ids[0], context=context)
-#         return {
-#             'name': u'选择源单',
-#             'view_mode': 'tree',
-#             'view_id': view_id,
-#             'view_type': 'tree',
-#             'res_model': 'source.order.line',
-#             'type': 'ir.actions.act_window',
-#             'nodestroy': True,
-#             'target': 'new',
-#             'domain': '[]',
-#             'context': {
-# #                 'payment_expected_currency': inv.currency_id.id,
-#             }
-#         }
-        return
+        assert(len(self._ids) == 1)
+        res = self.env['ir.model.data'].get_object_reference('money', 'money_invoice_tree')
+        view_id = res and res[1] or False
+        print "view_id", view_id
+        # 选择源单
+        dict, ret = [], []
+
+
+        return {
+            'name': u'选择源单',
+            'view_type': 'tree',
+            'view_mode': 'tree',
+            'view_id': False,
+            'views': [(view_id, 'tree')],
+            'res_model': 'money.invoice',
+            'type': 'ir.actions.act_window',
+            'target': 'new',
+            'domain': [],
+        }
 
     @api.multi
     def money_approve(self):
@@ -99,8 +97,8 @@ class money_order(models.Model):
         return True
 
     @api.multi
-    def money_action_cancel(self):
-        self.write({'state': 'cancel'})
+    def money_action_draft(self):
+        self.write({'state': 'draft'})
         return True
 
     @api.multi
@@ -114,26 +112,34 @@ class money_order_line(models.Model):
     state = fields.Selection([
                           ('draft', u'未审核'),
                           ('done', u'已审核'),
-                          ('cancel', u'已取消')
                            ], string=u'状态', readonly=True, default='draft', copy=False)
     money_id = fields.Many2one('money.order',string=u'收款单')
     bank_id =  fields.Many2one('bank.account', string=u'结算账户')
-    amount = fields.Float(string=u'收/付款金额')
+    amount = fields.Float(string=u'金额')
     mode_id = fields.Many2one('settle.mode', string=u'结算方式')
     number =  fields.Char(string=u'结算号')
     note = fields.Char(string=u'备注')
+
+# 测试类
+class invoice(models.Model):
+    _name = 'invoice'
+    _description = u'关联到源单'
+    invoice_ids = fields.One2many('money.invoice', 'invoice_id', string=u'源单')
 
 class money_invoice(models.Model):
     _name = 'money.invoice'
     _description = u'源单'
 
-    name = fields.Char(string=u'订单编号', copy=False)
+    invoice_id = fields.Many2one('invoice', string=u'关联到源单')
+    partner_id = fields.Many2one('partner', string=u'业务伙伴', required=True)
+    name = fields.Char(string=u'订单编号', copy=False, required=True)
     type = fields.Char(string=u'源单类型')
     business_type = fields.Char(string=u'业务类别')
     date = fields.Date(string=u'单据日期')
     amount = fields.Float(string=u'单据金额')
     reconciled = fields.Float(string=u'已核销金额')
     to_reconcile = fields.Float(string=u'未核销金额')
+    date_due = fields.Date(string=u'到期日')
 
 class source_order_line(models.Model):
     _name = 'source.order.line'
@@ -144,6 +150,7 @@ class source_order_line(models.Model):
                           ('done', u'已审核'),
                           ('cancel', u'已取消')
                            ], string=u'状态', readonly=True, default='draft', copy=False)
+    partner_id = fields.Many2one('partner', string=u'业务伙伴', required=True)
     money_id = fields.Many2one('money.order', string=u'收款单')
     name = fields.Many2one('money.invoice', string=u'源单编号', copy=False)
     business_type = fields.Char(string=u'业务类别') # 
@@ -152,3 +159,4 @@ class source_order_line(models.Model):
     reconciled = fields.Float(string=u'已核销金额')
     to_reconcile = fields.Float(string=u'未核销金额')
     this_reconcile = fields.Float(string=u'本次核销金额')
+    date_due = fields.Date(string=u'到期日')

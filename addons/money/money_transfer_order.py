@@ -25,11 +25,17 @@ class money_transfer_order(models.Model):
     _name = 'money.transfer.order'
     _description = u'资金转账单'
 
-    name = fields.Char(string=u'单据编号', copy=False, default=lambda self: self.pool['ir.sequence'].get(self._cr, self._uid, 'money_transfer_order', context=self._context) or '/' ) 
+    @api.model
+    def create(self, values):
+        if values.get('name', '/') == '/':
+            values.update({'name': self.pool['ir.sequence'].get(self._cr, self._uid, 'money_transfer_order', context=self._context) or '/'})
+
+        return super(money_transfer_order, self).create(values)
+
+    name = fields.Char(string=u'单据编号', copy=False, default='/')
     date = fields.Date(string=u'单据日期', default=lambda self: fields.Date.context_today(self))
     note = fields.Text(string=u'备注')
     line_ids = fields.One2many('money.transfer.order.line', 'transfer_id', string=u'资金转账单行')
-
 
 class money_transfer_order_line(models.Model):
     _name = 'money.transfer.order.line'

@@ -19,75 +19,68 @@
 #
 ##############################################################################
 
-from datetime import datetime
-from openerp.osv import fields, osv
+from openerp import fields, models, api
 
-class other_money_type(osv.osv):
+class other_money_type(models.Model):
     _name = 'other.money.type'
     _description = u'支出类别/收入类别'
 
-    _columns = {
-        'type':fields.char(u'类型',size=128,required=True),
-        'name':fields.char(u'描述',size=128,required=True),
-    }
-    _defaults = {
-        'type':lambda self, cr, uid, ctx:ctx.get('type'),
-    }
+    type = fields.Char(string=u'类型',size=128, default=lambda self: self._context.get('type'))
+    name = fields.Char(string=u'描述',size=128,required=True)
 
-class other_money_order(osv.osv):
+class other_money_order(models.Model):
     _name = 'other.money.order'
     _description = u'其他应收款/应付款'
-        
+
     TYPE_SELECTION = [
         ('other_payables', u'其他应付款'),
         ('other_receipts', u'其他应收款'),
     ]
 
-    def create(self, cr, uid, vals, context=None):
-        if not vals.get('name') and context.get('default_other_receipt'):
-            vals['name'] = self.pool.get('ir.sequence').get(cr, uid, 'other_receipt_order', context=context) or ''
-        if not vals.get('name') and context.get('default_other_payment'):
-            vals['name'] = self.pool.get('ir.sequence').get(cr, uid, 'other_payment_order', context=context) or ''
+    @api.model
+    def create(self, values):
+        if not values.get('name') and self._context.get('default_other_receipt'):
+            values.update({'name': self.pool['ir.sequence'].get(self._cr, self._uid, 'other_receipt_order', context=self._context) or '/'})
+        if (not values.get('name') and self._context.get('default_other_payment')) or values.get('name', '/') == '/':
+            values.update({'name': self.pool['ir.sequence'].get(self._cr, self._uid, 'other_payment_order', context=self._context) or '/'})
 
-        if context.get('default_other_payment'):
-            vals.update({'type': 'other_payables'})
-        if context.get('default_other_receipt'):
-            vals.update({'type': 'other_receipts'})
+        if self._context.get('default_other_payment'):
+            values.update({'type': 'other_payables'})
+        if self._context.get('default_other_receipt'):
+            values.update({'type': 'other_receipts'})
 
-        return super(other_money_order, self).create(cr, uid, vals, context=context)
+        return super(other_money_order, self).create(values)
 
-    _columns = {
-                'state': fields.selection([
-                          ('draft', u'草稿'),
-                          ('done', u'完成'),
+    @api.one
+    @api.depends('line_ids.amount')
+    def _compute_total_amount(self):
+        # 计算应付金额/应收金额
+        self.total_amount = sum(line.amount for line in self.line_ids)
+
+    state = fields.Selection([
+                          ('draft', u'未审核'),
+                          ('done', u'已审核'),
                           ('cancel', u'已取消')
-                           ], u'状态', readonly=True, copy=False),
-                'partner_id': fields.many2one('partner', u'业务伙伴', required=True),
-                'name': fields.char(u'单据编号', copy=False), 
-                'date': fields.date(u'单据日期'),
-                'total_amount': fields.float(u'应付金额/应收金额'),
-                'bank_id': fields.many2one('bank.account',u'结算账户'), #
-                'line_ids': fields.one2many('other.money.order.line', 'other_money_id', u'收支单行'),
-                'type': fields.selection(TYPE_SELECTION, u'其他应收款/应付款'),
-                }
+                           ], string=u'状态', readonly=True, default='draft', copy=False)
+    partner_id = fields.Many2one('partner', string=u'业务伙伴', required=True)
+    date = fields.Date(string=u'单据日期', default=lambda self: fields.Date.context_today(self))
+    name = fields.Char(string=u'单据编号', copy=False, readonly=True)
+    total_amount = fields.Float(string=u'金额', compute='_compute_total_amount')
+    bank_id = fields.Many2one('bank.account', string=u'结算账户')
+    line_ids = fields.One2many('other.money.order.line', 'other_money_id', string=u'收支单行')
+    type = fields.Selection(TYPE_SELECTION, string=u'其他应收款/应付款')
 
-    _defaults = {
-        'date': fields.date.context_today,
-        'state': 'draft',
-    }
-
-    def print_other_money_order(self, cr, uid, ids, context=None):
+    @api.multi
+    def print_other_money_order(self):
         '''打印 其他收入/支出单'''
-        assert len(ids) == 1, '一次执行只能有一个id'
-        return self.pool['report'].get_action(cr, uid, ids, 'money.report_other_money_order', context=context)
+        assert len(self._ids) == 1, '一次执行只能有一个id'
+        return self.pool['report'].get_action(self._cr, self._uid, self._ids, 'money.report_other_money_order', context=self._context)
 
-class other_money_order_line(osv.osv):
+class other_money_order_line(models.Model):
     _name = 'other.money.order.line'
     _description = u'其他应收应付明细'
 
-    _columns = {
-                'other_money_id': fields.many2one('other.money.order', u'其他收入/支出'),
-                'other_money_type': fields.many2one('other.money.type', u'支出类别/收入类别'),
-                'amount': fields.float(u'金额'),
-                'note': fields.char(u'备注'),
-                }
+    other_money_id = fields.Many2one('other.money.order', string=u'其他收入/支出')
+    other_money_type = fields.Many2one('other.money.type', string=u'类别')
+    amount = fields.Float(string=u'金额')
+    note = fields.Char(string=u'备注')

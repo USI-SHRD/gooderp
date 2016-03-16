@@ -60,5 +60,17 @@
             <field name="prefix">Transfer%(year)s/</field>
             <field name="padding">5</field>
         </record>
+
+        <!--  采购销售费用清单序列号 -->
+        <record id="seq_type_purchase_sale_fee_order" model="ir.sequence.type">
+            <field name="name">Purchase Sale Fee Order</field>
+            <field name="code">purchase_sale_fee_order</field>
+        </record>
+        <record id="seq_purchase_sale_fee_order" model="ir.sequence">
+            <field name="name">Purchase Sale Fee Order</field>
+            <field name="code">purchase_sale_fee_order</field>
+            <field name="prefix">POSF%(year)s/</field>
+            <field name="padding">5</field>
+        </record>
     </data>
 </openerp>

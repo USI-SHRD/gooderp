@@ -29,8 +29,7 @@
                 <sheet>
                     <div class="oe_title">
                         <h1>
-                            <label string="其他收入单 " invisible="context.get('default_other_payment') or False"/>
-                            <label string="其他支出单 " invisible="context.get('default_other_receipt') or False"/>
+                            <label string="其他收支单 " invisible="context.get('default_other_payment') or False"/>
                             <field name="name" class="oe_inline" readonly="1"/>
                         </h1>
                     </div>
