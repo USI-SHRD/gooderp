@@ -4,6 +4,7 @@
 from openerp.osv import fields
 from openerp.osv import osv
 import openerp.addons.decimal_precision as dp
+from operator import attrgetter
 
 
 class report_stock_transceive(osv.osv):
@@ -126,15 +127,22 @@ class report_stock_transceive(osv.osv):
 
             self.update_record_value(res[record_key], record, sql_type=sql_type)
 
+    def _compute_domain(self, result, domain):
+        print '     domain = ', domain, type(domain)
+        pass
+
+    def _compute_order(self, result, order):
+        # TODO 暂时不支持多重排序
+        if order:
+            order = order.partition(',')[0].partition(' ')
+            result.sort(key=attrgetter(order[0]), reverse=order[2] == 'ASC')
+
+    def _compute_limit_and_offset(self, result, limit, offset):
+        result = result[offset:limit + offset]
+
     def search_read(self, cr, uid, domain=None, fields=None, offset=0, limit=None, order=None, context=None):
         context = context or {}
         print '------------search_read-----------------'
-        print '     domain = ', domain
-        print '     fields = ', fields
-        print '     offset = ', offset
-        print '     limit = ', limit
-        print '     order = ', order
-        print '     context = ', context
 
         out_collection = self.collect_history_stock_by_sql(cr, sql_type='out', context=context)
         in_collection = self.collect_history_stock_by_sql(cr, sql_type='in', context=context)
@@ -147,6 +155,10 @@ class report_stock_transceive(osv.osv):
         for key, value in res.iteritems():
             value.update(self.unzip_record_key(key))
             result.append(value)
+
+        self._compute_domain(result, domain)
+        self._compute_order(result, order)
+        self._compute_limit_and_offset(result, limit, offset)
 
         return result
 
