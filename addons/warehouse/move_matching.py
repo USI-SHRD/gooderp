@@ -9,23 +9,17 @@ from utils import safe_division
 class wh_move_matching(osv.osv):
     _name = 'wh.move.matching'
 
-    def create_matching(self, cr, uid, line_in_id, line_out_id, qty, lot_in_id=None, context=None):
-        context = context or {}
+    def create_matching(self, cr, uid, line_in_id, line_out_id, qty, context=None):
         res = {
             'line_out_id': line_out_id,
             'line_in_id': line_in_id,
             'qty': qty,
         }
 
-        if lot_in_id:
-            res.update({'lot_in_id': lot_in_id})
-
-        print '-------res', res
         return self.create(cr, uid, res, context=context)
 
     _columns = {
-        'line_in_id': fields.many2one('wh.move.line', u'出库', ondelete='set null', index=True),
-        'lot_in_id': fields.many2one('wh.lot', u'入库批次', ondelete='set null', index=True),
+        'line_in_id': fields.many2one('wh.move.line', u'出库', ondelete='set null', required=True, index=True),
         'line_out_id': fields.many2one('wh.move.line', u'入库', ondelete='set null', required=True, index=True),
         'qty': fields.float(u'数量', digits_compute=dp.get_precision('Goods Quantity'), required=True),
     }
@@ -65,17 +59,8 @@ class wh_move_line(osv.osv):
 
     def get_matching_records_by_lot(self, cr, uid, ids, context=None):
         for line in self.browse(cr, uid, ids, context=context):
-            res, subtotal = [], 0
-            for consume_lot in line.consume_lot_ids:
-                res.append({
-                        'line_in_id': consume_lot.lot_id.line_id.id,
-                        'lot_in_id': consume_lot.lot_id.id,
-                        'qty': consume_lot.goods_qty,
-                    })
-
-                subtotal += consume_lot.goods_qty * consume_lot.lot_id.line_id.price
-
-            return res, subtotal
+            return [{'line_in_id': line.lot_id.id, 'qty': line.goods_qty}], \
+                line.lot_id.price * line.goods_qty
 
         return []
 
@@ -86,16 +71,15 @@ class wh_move_line(osv.osv):
                 if line.goods_id.is_using_batch():
                     matching_records, subtotal = line.get_matching_records_by_lot()
                     for matching in matching_records:
-                        print 'matching', matching
                         matching_obj.create_matching(cr, uid, matching.get('line_in_id'),
-                            line.id, matching.get('qty'), matching.get('lot_in_id'), context=context)
+                            line.id, matching.get('qty'), context=context)
                 else:
                     matching_records, subtotal = line.goods_id.get_matching_records(
                         line.warehouse_id.id, line.goods_qty, context=context)
 
                     for matching in matching_records:
-                        matching_obj.create_matching(cr, uid,
-                            matching.get('line_in_id'), line.id, matching.get('qty'), context=context)
+                        matching_obj.create_matching(cr, uid, matching.get('line_in_id'),
+                            line.id, matching.get('qty'), context=context)
 
                 line.write({'price': safe_division(subtotal, line.goods_qty), 'subtotal': subtotal})
 
@@ -116,7 +100,7 @@ class wh_move_line(osv.osv):
             store={
                 'wh.move.matching': (_get_moves_from_matchings, ['qty', 'move_in_id', 'move_out_id'], 10),
                 'wh.move.line': (lambda self, cr, uid, ids, ctx: ids, ['goods_qty', 'warehouse_id'], 10)
-            }, index=True),
+            }, digits_compute=dp.get_precision('Goods Quantity'), index=True),
 
         'matching_in_ids': fields.one2many('wh.move.matching', 'line_in_id'),
         'matching_out_ids': fields.one2many('wh.move.matching', 'line_out_id'),

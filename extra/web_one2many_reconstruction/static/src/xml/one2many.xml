@@ -1,0 +1,30 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<templates id='template' xml:space='preserve'>
+<t t-name='web_one2many_reconstruction.one2many'>
+    <table class='reconstruction_table' border='1'>
+        <thead>
+            <tr>
+                <th>hello</th>
+                <t t-foreach='columns' t-as='column'>
+                    <!-- <span>hello</span> -->
+                    <th><t t-esc='column.string' /></th>
+                </t>
+            </tr>
+        </thead>
+        <tbody>
+<!--             <t t-foreach='rows' t-as='row'>
+                <t t-call='web_one2many_reconstruction.row' />
+            </t> -->
+        </tbody>
+    </table>
+</t>
+
+<t t-name='web_one2many_reconstruction.row'>
+    <tr>
+        <t t-foreach='row' t-as='column'>
+            <td><t t-esc='column' /></td>
+        </t>
+    </tr>
+</t>
+
+</templates>
