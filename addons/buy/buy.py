@@ -41,6 +41,7 @@ class buy_order(osv.osv):
     @api.one
     @api.depends('line_ids.subtotal', 'discount_rate')
     def _compute_amount(self):
+        '''计算订单合计金额，并且当优惠率改变时，改变优惠金额和优惠后金额'''
         self.total = sum(line.subtotal for line in self.line_ids)
         self.discount_amount = self.total * self.discount_rate * 0.01
         self.amount = self.total - self.discount_amount
@@ -94,7 +95,6 @@ class buy_order(osv.osv):
         res = []
         dict = []
         ret = []
-#         order = self.browse(self._ids)
 
         for line in self.line_ids:
             dict.append({
@@ -102,6 +102,7 @@ class buy_order(osv.osv):
                 'spec': line.spec,
                 'uom_id': line.uom_id.id,
                 'warehouse_id': line.warehouse_id and line.warehouse_id.id or '',
+                'warehouse_dest_id': line.warehouse_dest_id and line.warehouse_dest_id.id or '',
                 'goods_qty': line.quantity,
                 'price': line.price,
                 'discount_rate': line.discount_rate,
@@ -113,9 +114,11 @@ class buy_order(osv.osv):
                 'note': line.note or '',
                 'share_cost': 0,
             })
+            print 'dict:',dict
 
         for i in range(len(dict)):
             ret.append((0, 0, dict[i]))
+        print 'ret:',ret
         receipt_id = self.pool.get('buy.receipt').create(self._cr, self._uid, {
                             'partner_id': self.partner_id.id,
                             'line_in_ids': ret,
@@ -126,6 +129,7 @@ class buy_order(osv.osv):
 #                             'total_cost':,
                             'state': 'draft',
                         }, context=self._context)
+        print 'partner_id', self.partner_id.id
         res.append(receipt_id)
         view_id = self.env['ir.model.data'].xmlid_to_res_id('gooderp.buy_receipt_form')
         self.write({'state': 'confirmed'})
@@ -144,11 +148,19 @@ class buy_order(osv.osv):
 class buy_order_line(osv.osv):
     _name = 'buy.order.line'
     _description = u'采购订单明细'
+
+    def _get_default_warehouse(self, cr, uid, context=None):
+        context = context or {}
+        if context.get('warehouse_type'):
+            return self.pool.get('warehouse').get_warehouse_by_type(cr, uid, context.get('warehouse_type'))
+
+        return False
     _columns = {
         'goods_id': fields.many2one('goods', u'商品'),
         'spec': fields.char(u'属性'),
         'uom_id': fields.many2one('uom', u'单位'),
-        'warehouse_id': fields.many2one('warehouse', u'仓库'),
+        'warehouse_id': fields.many2one('warehouse', u'调出仓库'),
+        'warehouse_dest_id': fields.many2one('warehouse', u'调入仓库'),
         'quantity': fields.float(u'数量'),
         'price': fields.float(u'购货单价'),
         'discount_rate': fields.float(u'折扣率%'),
@@ -162,6 +174,10 @@ class buy_order_line(osv.osv):
         'order_id': fields.many2one('buy.order', u'订单编号', select=True, required=True, ondelete='cascade'),
     }
 
+    _defaults = {
+        'warehouse_id': _get_default_warehouse,
+#         'warehouse_dest_id': _get_default_warehouse_dest,
+    }
     def onchange_goods_id(self, cr, uid, ids, goods_id, context=None):
         '''当订单行的产品变化时，带出产品上的单位'''
         return {'value':{
@@ -189,41 +205,23 @@ class buy_receipt(osv.osv):
     _inherit = ['mail.thread']
     _description = u"采购入库单"
 
-    _columns = {
-        'buy_move_id': fields.many2one('wh.move', u'入库单'),
-        'discount_rate': fields.float(u'优惠率(%)', states=READONLY_STATES),
-        'discount_amount': fields.float(u'优惠金额', states=READONLY_STATES),
-        'amount': fields.float(u'优惠后金额', states=READONLY_STATES),
-        'payment': fields.float(u'本次付款', states=READONLY_STATES),
-        'bank_account_id': fields.many2one('bank.account', u'结算账户'),
-        'debt': fields.float(u'本次欠款'),
-        'total_cost': fields.float(u'采购费用'),
-        'state': fields.selection(BUY_ORDER_STATES, u'状态', readonly=True, help=u"采购入库单的状态", select=True, copy=False),
-    }
-    _defaults ={
-        'date': fields.date.context_today,
-        'name': lambda self, cr, uid, context: \
-                        self.pool.get('ir.sequence').get(cr, uid, 'buy.receipt', context=context),
-        'bank_account_id': '(空)',
-    }
-
-    def create(self, cr, uid, vals, context=None):
-        context = dict(context or {}, mail_create_nolog=True)
-        receipt =  super(buy_receipt, self).create(cr, uid, vals, context=context)
-        self.message_post(cr, uid, [receipt], body=u'采购入库单已创建', context=context)
-        return receipt
-
-    def onchange_discount_rate(self, cr, uid, ids, discount_rate, context=None):
+    @api.one
+    @api.depends('line_in_ids.subtotal', 'discount_rate')
+    def _compute_amount(self):
         '''当优惠率改变时，改变优惠金额和优惠后金额'''
-        total = 0
-        for line in self.browse(cr, uid, ids, context=context).line_in_ids:
-            total += line.subtotal
-        discount_amount = total * discount_rate * 0.01
-        return {'value':{
-                         'discount_amount': discount_amount,
-                         'amount': total - discount_amount,
-                         }
-                }
+        self.total = sum(line.subtotal for line in self.line_in_ids)
+        self.discount_amount = self.total * self.discount_rate * 0.01
+        self.amount = self.total - self.discount_amount
+
+    buy_move_id = Fields.Many2one('wh.move', u'入库单', required=True, index=True, ondelete='cascade')
+    discount_rate = Fields.Float(u'优惠率(%)', states=READONLY_STATES)
+    discount_amount = Fields.Float(u'优惠金额', states=READONLY_STATES)
+    amount = Fields.Float(u'优惠后金额', states=READONLY_STATES)
+    payment = Fields.Float(u'本次付款', states=READONLY_STATES)
+    bank_account_id = Fields.Many2one('bank.account', u'结算账户', default='(空)')
+    debt = Fields.Float(u'本次欠款')
+    total_cost = Fields.Float(u'采购费用')
+    state = Fields.Selection(BUY_ORDER_STATES, u'状态', readonly=True, help=u"采购入库单的状态", select=True, copy=False)
 
 class buy_receipt_line(osv.osv):
     _inherit = 'wh.move.line'

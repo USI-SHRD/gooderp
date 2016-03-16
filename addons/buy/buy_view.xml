@@ -50,12 +50,13 @@
                             <field name="type" widget="radio"/>
                         </group>
                     </group>
-                    <field name="line_ids">
+                    <field name="line_ids" context="{'warehouse_type': 'supplier'}">
                     	<tree string="Buy Order Lines" editable="bottom">
                             <field name="goods_id" on_change="onchange_goods_id(goods_id)"/>
                             <field name="spec"/>
                             <field name="uom_id"/>
                             <field name="warehouse_id"/>
+                            <field name='warehouse_dest_id' required='1'/>
                             <field name="quantity" sum="合计数量" on_change="onchange_price(price, quantity, discount_rate, tax_rate)"/>
                             <field name="price" on_change="onchange_price(price, quantity, discount_rate, tax_rate)"/>
                             <field name="discount_rate" on_change="onchange_price(price, quantity, discount_rate, tax_rate)"/>
@@ -137,10 +138,11 @@
                     </group>
                     <field name="line_in_ids">
                     	<tree string="Buy Receipt Lines" editable="bottom">
-                            <field name="goods_id"/>
+                            <field name="goods_id" required='1'/>
                             <field name="spec"/>
                             <field name="uom_id"/>
-                            <field name="warehouse_id"/>
+                            <field name="warehouse_id" required='1'/>
+                            <field name='warehouse_dest_id' required='1'/>
                             <field name="goods_qty" sum="合计数量" on_change="onchange_price(price, goods_qty, discount_rate, tax_rate)"/>
                             <field name="price" on_change="onchange_price(price, goods_qty, discount_rate, tax_rate)"/>
                             <field name="discount_rate" on_change="onchange_price(price, goods_qty, discount_rate, tax_rate)"/>
