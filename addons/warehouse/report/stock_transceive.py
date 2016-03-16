@@ -8,7 +8,6 @@ import openerp.addons.decimal_precision as dp
 
 class report_stock_transceive(osv.osv):
     _name = 'report.stock.transceive'
-    _auto = False
 
     _columns = {
         'goods': fields.char(u'产品'),
@@ -24,35 +23,3 @@ class report_stock_transceive(osv.osv):
         'goods_qty_in': fields.float('入库数量', digits_compute=dp.get_precision('Goods Quantity')),
         'cost_in': fields.float(u'入库成本', digits_compute=dp.get_precision('Accounting')),
     }
-
-    def init(self, cr):
-        tools.drop_view_if_exists(cr, 'report_stock_transceive')
-        print '-----self------', self
-        raise osv.exept_osv('fsd', 'fds')
-        cr.execute(
-            """
-            create or replace view report_stock_transceive as (
-                SELECT min(line.id) as id,
-                       goods.name as goods,
-                       line.lot as lot,
-                       uom.name as uom,
-                       wh.name as warehouse,
-                       sum(line.qty_remaining) as goods_qty_begain,
-                       sum(line.subtotal) as cost_begain
-
-                FROM wh_move_line line
-                LEFT JOIN warehouse wh ON line.warehouse_dest_id = wh.id
-                LEFT JOIN goods goods ON line.goods_id = goods.id
-                    LEFT JOIN uom uom ON goods.uom_id = uom.id
-
-                WHERE line.qty_remaining > 0
-                  AND wh.type = 'stock'
-                  AND line.state = 'done'
-
-                GROUP BY wh.name, line.lot, goods.name, uom.name
-
-                ORDER BY goods.name, wh.name, goods_qty_begain asc
-            )
-        """)
-
-# vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:
