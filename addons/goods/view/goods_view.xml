@@ -51,17 +51,12 @@
             <field name='arch' type='xml'>
                 <form string='属性'>
                     <field name='name'/>
-                    <field name='value_ids' />
-                </form>
-            </field>
-        </record>
-        <record id='attribute_value_form' model='ir.ui.view'>
-            <field name='name'>attribute.value.form</field>
-            <field name='model'>attribute.value</field>
-            <field name='arch' type='xml'>
-                <form string='属性值'>
-                    <field name='category_id'/>
-                    <field name='value_id' />
+                    <field name='value_ids'>
+                        <tree editable='TOP' string='属性值'>
+                            <field name='category_id'/>
+                            <field name='value_id' />
+                        </tree>
+                    </field>
                 </form>
             </field>
         </record>
