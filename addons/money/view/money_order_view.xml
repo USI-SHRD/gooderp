@@ -28,7 +28,7 @@
                 <form string="Money Order">
                 <header>
                 	<button name="money_approve" states="draft" string="审核" type="object" class="oe_highlight"/>
-                	<button name="money_action_cancel" states="done" string="反审核" type="object"/>
+					<button name="money_action_draft" states="done" string="反审核" type="object"/>
                 	<button name="print_money_order" states="done" string="打印" type="object" class="oe_highlight"/>
                     <field name="state" widget="statusbar" statusbar_visible="draft,done" readonly="1"/>
                 </header>
@@ -135,6 +135,7 @@
                     <field name="reconciled" readonly='1'/>
                     <field name="to_reconcile" readonly='1'/>
 					<field name="this_reconcile"/>
+					<field name="date_due"/>
                 </tree>
             </field>
         </record>
@@ -144,13 +145,15 @@
             <field name="name">money.invoice.tree</field>
             <field name="model">money.invoice</field>
             <field name="arch" type="xml">
-                <tree string="Source Order Line">
+                <tree string="Source Order Line" editable="bottom">
                     <field name="name"/>
+                    <field name="partner_id"/>
             		<field name="business_type"/>
                     <field name="date"/>
                     <field name="amount"/>
                     <field name="reconciled"/>
                     <field name="to_reconcile"/>
+                    <field name="date_due"/>
                 </tree>
             </field>
         </record>
@@ -163,10 +166,37 @@
             <field name="view_mode">tree</field>
         </record>
 
+		<!--关联到源单form-->
+        <record id="invoice_form" model="ir.ui.view">
+            <field name="name">invoice.form</field>
+            <field name="model">invoice</field>
+            <field name='type'>form</field>
+            <field name="arch" type="xml">
+                <form string="Invoice">
+                    <field name="invoice_ids">
+                    	<tree string="Invoice Lines">
+                    		<field name="name"/>
+		                    <field name="partner_id"/>
+		            		<field name="business_type"/>
+		                    <field name="date"/>
+		                    <field name="amount"/>
+		                    <field name="reconciled"/>
+		                    <field name="to_reconcile"/>
+		                    <field name="date_due"/>
+                       </tree>
+                    </field>
+                </form>
+                <footer>
+                    <!-- <button name="money_invoice_confirm" type="object"  string="确定"/> -->
+                    <button string="取消" class="oe_link" special="cancel"/>
+                </footer>
+            </field>
+        </record>
+
 		<!-- 收款单menu、付款单menu -->
         <menuitem id="menu_money_receipt_action" action="money_receipt_action" parent="menu_money_manage" sequence="1"/>
         <menuitem id="menu_money_payment_action" action="money_payment_action" parent="menu_money_manage" sequence="2"/>
-		<!-- 收款单menu、付款单menu -->
+		<!-- 源单menu -->
 		<menuitem id="menu_money_invoice_action" action="money_invoice_action" parent="menu_money_manage" sequence="3"/>
 	</data>
 </openerp>
