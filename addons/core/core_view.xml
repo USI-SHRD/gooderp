@@ -139,6 +139,7 @@
                 <tree editable="TOP" string="客户">                  
                     <field name="name"/>
                     <field name="c_category_id" required="1"/>
+                    <field name="receivable" sum='sum' readonly='1'/>
                 </tree>
             </field>
         </record>
@@ -159,9 +160,10 @@
             <field name="name">供应商列表</field>
             <field name="model">partner</field>
             <field name="arch" type="xml">
-                <tree editable="TOP" string="供应商">                  
+                <tree editable="TOP" string="供应商">
+                    <field name="s_category_id" required="1"/>                  
                     <field name="name"/>
-                    <field name="s_category_id" required="1"/>
+                    <field name="payable" sum='sum' readonly='1'/>
                 </tree>
             </field>
         </record>
@@ -186,6 +188,7 @@
             <field name="arch" type="xml">
                 <tree editable="TOP" string="账户">                  
                     <field name="name"/>
+                    <field name="balance" sum='sum' readonly='1'/>
                 </tree>
             </field>
         </record>
