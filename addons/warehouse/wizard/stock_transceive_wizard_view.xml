@@ -8,10 +8,15 @@
                 <form string='商品收发明细表'>
                     <group>
                         <group>
-                            <field name='date_start' required='1' />
+                            <label for="date_start" string="单据期间" class='oe_inline' />
+                            <div>
+                                <field name="date_start" class="oe_inline" nolabel='1' required='1' on_change='onchange_date(date_start, date_end)' /> - 
+                                <field name="date_end" class="oe_inline" nolabel='1' required='1' on_change='onchange_date(date_start, date_end)' />
+                            </div>
+                            <field name='goods' />
                         </group>
                         <group>
-                            <field name='date_end' required='1' />
+                            <field name='warehouse' />
                         </group>
                     </group>
                     <footer>

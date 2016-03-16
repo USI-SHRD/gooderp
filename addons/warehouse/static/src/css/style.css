@@ -10,6 +10,6 @@ span.selection-clickable-mode[data-value=disable], span.boolean-clickable-mode[d
 }
 
 .openerp .oe_form_editable
-.oe_form .oe_form_field_date input {
+.oe_form .oe_form_field_date:not(.oe_inline) input {
     width: 200px;
 }

@@ -7,11 +7,18 @@
             <field name='arch' type='xml'>
                 <tree string='商品库存余额表'>
                     <field name='goods' />
-                    <field name='lot' />
                     <field name='uom' />
                     <field name='warehouse' />
                     <field name='goods_qty_begain' />
                     <field name='cost_begain' />
+
+                    <field name='goods_qty_out' />
+                    <field name='goods_qty_in' />
+                    <field name='goods_qty_end' />
+    
+                    <field name='cost_out' />
+                    <field name='cost_in' />
+                    <field name='cost_end' />
                 </tree>
             </field>
         </record>
@@ -22,7 +29,6 @@
             <field name='arch' type='xml'>
                 <graph type='pivot'>
                     <field name='goods' type='row' />
-                    <field name='lot' type='row' />
                     <field name='warehouse' type='col' />
                     <field name='goods_qty_begain' type='measure' />
                     <field name='cost_begain' type='measure' />
