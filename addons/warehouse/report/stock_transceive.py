@@ -4,7 +4,6 @@
 from openerp.osv import fields
 from openerp.osv import osv
 import openerp.addons.decimal_precision as dp
-from operator import attrgetter
 
 
 class report_stock_transceive(osv.osv):
@@ -135,7 +134,7 @@ class report_stock_transceive(osv.osv):
         # TODO 暂时不支持多重排序
         if order:
             order = order.partition(',')[0].partition(' ')
-            result.sort(key=attrgetter(order[0]), reverse=order[2] == 'ASC')
+            result.sort(key=lambda item: item.get(order[0]), reverse=order[2] == 'ASC')
 
     def _compute_limit_and_offset(self, result, limit, offset):
         result = result[offset:limit + offset]
