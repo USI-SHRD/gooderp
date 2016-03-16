@@ -8,7 +8,6 @@ import openerp.addons.decimal_precision as dp
 
 class report_stock_transceive(osv.osv):
     _name = 'report.stock.transceive'
-    _auto = False
 
     _columns = {
         'goods': fields.char(u'产品'),

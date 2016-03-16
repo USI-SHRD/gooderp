@@ -14,6 +14,7 @@
             		<field name='delivery_date'/>
             		<field name='note'/>
             		<field name='line_ids'/>
+            		<field name='state'/>
             	</tree>
         	</field> 
     	</record>

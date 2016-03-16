@@ -29,8 +29,8 @@
                 <form string="Buy Order">
                 <header>
                 	<button name="buy_approve" states="draft" string="审核" type="object" class="oe_highlight"/>
-                	<button name="buy_refuse" states="approved" string="反审核" type="object"/>
-                    <button name="buy_generate_order" states="approved" string="生成采购入库单" type="object" class="oe_highlight"/>
+                	<button name="buy_refuse" states="approved,confirmed" string="反审核" type="object"/>
+                    <button name="buy_generate_order" states="approved,confirmed" string="生成采购入库单" type="object" class="oe_highlight"/>
                     <field name="state" widget="statusbar" statusbar_visible="draft,approved,confirmed" statusbar_colors='{"approved":"blue"}' readonly="1"/>
                 </header>
                 <sheet>
@@ -50,26 +50,29 @@
                             <field name="type" widget="radio"/>
                         </group>
                     </group>
-                    <field name="line_ids">
+                    <field name="line_ids" context="{'warehouse_type': 'supplier', 'warehouse_dest_type': 'stock'}">
                     	<tree string="Buy Order Lines" editable="bottom">
                             <field name="goods_id"/>
                             <field name="spec"/>
                             <field name="uom_id"/>
                             <field name="warehouse_id"/>
-                            <field name="quantity" sum="合计数量" on_change="onchange_price(price, quantity, discount_rate, tax_rate)"/>
-                            <field name="price" on_change="onchange_price(price, quantity, discount_rate, tax_rate)"/>
-                            <field name="discount_rate" on_change="onchange_price(price, quantity, discount_rate, tax_rate)"/>
+                            <field name='warehouse_dest_id' required='1'/>
+                            <field name="quantity" sum="合计数量"/>
+                            <field name="price"/>
+                            <field name="discount_rate"/>
                             <field name="discount" sum="合计折扣额"/>
                             <field name="amount" sum="合计金额"/>
-                            <field name="tax_rate" on_change="onchange_price(price, quantity, discount_rate, tax_rate)"/>
+                            <field name="tax_rate"/>
                             <field name="tax_amount" sum="合计税额"/>
                             <field name="subtotal" sum="价税合计的合计"/>
                             <field name="note"/>
+                            <field name="origin"/>
                         </tree>
                     </field>
                     <group>
+                    	<field name="total" readonly="1"/>
                         <group col="6" colspan="6">
-                            <field name="discount_rate" on_change="onchange_discount_rate(discount_rate)"/>
+                            <field name="discount_rate"/>
                             <field name="discount_amount"/>
                             <field name="amount"/>
                         </group>
@@ -101,22 +104,22 @@
             <field name="model">buy.receipt</field>
             <field name="arch" type="xml">
                 <tree colors="blue:state in ('approved','confirmed'))" string="Buy Receipt">
-                    <field name="name" string="编号"/>
+                    <!-- <field name="name" string="编号"/>
                     <field name="partner_id"/>
-                    <field name="date" />
+                    <field name="date" /> -->
                     <field name="state"/>
                 </tree>
             </field>
         </record>
-        
+
         <record id="buy_receipt_form" model="ir.ui.view">
             <field name="name">buy.receipt.form</field>
             <field name="model">buy.receipt</field>
             <field name="arch" type="xml">
                 <form string="Buy Receipt">
                 <header>
-                	<button name="buy_approve" states="draft" string="审核" type="object" class="oe_highlight"/>
-                	<button name="buy_refuse" states="approved" string="反审核" type="object"/>
+                	<button name="buy_in_approve" states="draft" string="审核" type="object" class="oe_highlight"/>
+                	<button name="buy_in_refuse" states="approved" string="反审核" type="object"/>
                     <field name="state" widget="statusbar" statusbar_visible="draft,approved,confirmed" statusbar_colors='{"approved":"blue"}' readonly="1"/>
                 </header>
                 <sheet>
@@ -132,20 +135,22 @@
                         </group>
                         <group>
                             <field name="name" readonly="1"/>
+                            <field name="origin" readonly="1"/>
                         </group>
                     </group>
-                    <field name="line_in_ids">
+                    <field name="line_in_ids" context="{'warehouse_type': 'supplier', 'warehouse_dest_type': 'stock'}">
                     	<tree string="Buy Receipt Lines" editable="bottom">
-                            <field name="goods_id"/>
+                            <field name="goods_id" required='1'/>
                             <field name="spec"/>
                             <field name="uom_id"/>
-                            <field name="warehouse_id"/>
-                            <field name="goods_qty" sum="合计数量" on_change="onchange_price(price, goods_qty, discount_rate, tax_rate)"/>
-                            <field name="price" on_change="onchange_price(price, goods_qty, discount_rate, tax_rate)"/>
-                            <field name="discount_rate" on_change="onchange_price(price, goods_qty, discount_rate, tax_rate)"/>
+                            <field name="warehouse_id" required='1'/>
+                            <field name='warehouse_dest_id' required='1'/>
+                            <field name="goods_qty" sum="合计数量"/>
+                            <field name="price"/>
+                            <field name="discount_rate"/>
                             <field name="discount" sum="合计折扣额"/>
                             <field name="amount" sum="合计金额"/>
-                            <field name="tax_rate" on_change="onchange_price(price, goods_qty, discount_rate, tax_rate)"/>
+                            <field name="tax_rate"/>
                             <field name="tax_amount" sum="合计税额"/>
                             <field name="subtotal" sum="价税合计的合计"/>
                             <field name="note"/>
@@ -154,7 +159,7 @@
                     </field>
                     <group>
                         <group col="8" colspan="8">
-                            <field name="discount_rate" on_change="onchange_discount_rate(discount_rate)"/>
+                            <field name="discount_rate"/>
                             <field name="discount_amount"/>
                             <field name="amount"/>
                             <field name="payment"/>
@@ -191,10 +196,8 @@
 
         <record id="buy_order_action" model="ir.actions.act_window">
             <field name="name">购货订单</field>
-            <field name="type">ir.actions.act_window</field>
             <field name="res_model">buy.order</field>
             <field name="context">{}</field>
-            <field name="domain"></field>
             <field name="view_mode">tree,form</field>
             <field name="help" type="html">
               <p class="oe_view_nocontent_create">
@@ -205,9 +208,7 @@
 
         <record id="buy_receipt_action" model="ir.actions.act_window">
             <field name="name">采购入库单</field>
-            <field name="type">ir.actions.act_window</field>
             <field name="res_model">buy.receipt</field>
-            <field name="context">{}</field>
             <field name="view_mode">tree,form</field>
             <field name="help" type="html">
               <p class="oe_view_nocontent_create">
