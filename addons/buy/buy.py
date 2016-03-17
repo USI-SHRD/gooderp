@@ -223,53 +223,56 @@ class buy_receipt(models.Model):
         self.debt = self.amount - self.payment
 
     buy_move_id = fields.Many2one('wh.move', u'入库单', required=True, ondelete='cascade')
-    origin = fields.Char(u'源单号')
+    origin = fields.Char(u'源单号', copy=False)
+    date_due = fields.Date(u'到期日期', copy=False)
     discount_rate = fields.Float(u'优惠率(%)', states=READONLY_STATES)
     discount_amount = fields.Float(u'优惠金额', compute=_compute_all_amount, states=READONLY_STATES)
     amount = fields.Float(u'优惠后金额', compute=_compute_all_amount, states=READONLY_STATES)
     payment = fields.Float(u'本次付款', states=READONLY_STATES)
     bank_account_id = fields.Many2one('bank.account', u'结算账户', default='(空)')
-    debt = fields.Float(u'本次欠款', compute=_compute_all_amount)
-    total_cost = fields.Float(u'采购费用')
+    debt = fields.Float(u'本次欠款', compute=_compute_all_amount, copy=False)
+    total_cost = fields.Float(u'采购费用', copy=False)
     state = fields.Selection(BUY_RECEIPT_STATES, u'付款状态', default='draft', readonly=True, help=u"采购入库单的状态", select=True, copy=False)
 
     @api.model
     def create(self, vals):
         '''创建采购入库单时判断结算账户和付款额'''
-        if vals.get('bank_account_id') and vals.get('payment') == 0:
+        a = self.bank_account_id
+        b = (self.payment==0)
+        c = vals.get('bank_account_id')
+        d = (vals.get('payment')==0)
+        print a,b,c,d
+        if (a or c) and d:
             raise except_orm(u'警告！', u'结算账户不为空时，需要输入付款额！')
-        elif vals.get('payment') != 0 and not vals.get('bank_account_id'):
+        elif not b and not (a or c):
             raise except_orm(u'警告！', u'付款额不为空时，请选择结算账户！')
-        elif vals.get('payment') > vals.get('amount'):
-            raise except_orm(u'警告！', u'本次付款金额不能大于折后金额！')
         return super(buy_receipt, self).create(vals)
 
     @api.multi
     def write(self, vals):
         '''修改采购入库单时判断结算账户和付款额'''
-        if vals.get('bank_account_id') and vals.get('payment') == 0:
+        a = self.bank_account_id
+        b = (self.payment==0)
+        c = vals.get('bank_account_id')
+        d = (vals.get('payment')==0)
+        if (a or c) and d:
             raise except_orm(u'警告！', u'结算账户不为空时，需要输入付款额！')
-        elif vals.get('payment') != 0 and not vals.get('bank_account_id'):
+        elif (not b or not d) and not (a or c):
             raise except_orm(u'警告！', u'付款额不为空时，请选择结算账户！')
-        elif vals.get('payment') > vals.get('amount'):
-            raise except_orm(u'警告！', u'本次付款金额不能大于折后金额！')
         return super(buy_receipt, self).write(vals)
 
     @api.one
     def buy_in_approve(self):
         '''审核采购入库单，更新购货订单的状态和本单的付款状态，并生成源单'''
-        if self.bank_account_id and self.payment == 0:
-            raise except_orm(u'警告！', u'结算账户不为空时，需要输入付款额！')
-        elif self.payment != 0 and not self.bank_account_id:
-            raise except_orm(u'警告！', u'付款额不为空时，请选择结算账户！')
-
         order = self.env['buy.order'].search([('name', '=', self.origin)])
-        if order.quantity < self.line_in_ids.goods_qty:
-            raise except_orm(u'警告！', u'入库数量不能超过购货订单数量！')
-        elif order.quantity > self.line_in_ids.goods_qty:
-            order.write({'state': 'part_in'})
-        else:
-            order.write({'state': 'all_in'})
+        for line in order.line_ids:
+            if line.goods_id.id == self.line_in_ids.goods_id.id:
+                if line.quantity < self.line_in_ids.goods_qty:
+                    raise except_orm(u'警告！', u'入库数量不能超过购货订单数量！')
+                elif line.quantity > self.line_in_ids.goods_qty:
+                    order.write({'state': 'part_in'})
+                else:
+                    order.write({'state': 'all_in'})
 
         if self.payment > self.amount:
             raise except_orm(u'警告！', u'本次付款金额不能大于折后金额！')
@@ -280,6 +283,19 @@ class buy_receipt(models.Model):
         else:
             self.write({'state': 'paid'})
         self.write({'approve_uid': self._uid})
+
+        # 生成源单
+        self.env['money.invoice'].create({
+                            'name': self.name,
+                            'partner_id': self.partner_id.id,
+                            'business_type': u'普通采购',
+                            'date': fields.Date.context_today(self),
+                            'amount': self.debt,
+                            'reconciled': 0.0,
+                            'to_reconcile': self.debt,
+                            'date_due': self.date_due,
+#                             'state': 'done',
+                        })
         return True
 
     @api.one
