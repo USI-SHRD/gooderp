@@ -1,161 +1,204 @@
 # -*- encoding: utf-8 -*-
 
-from openerp.osv import fields, osv
+from openerp import fields, models, api
+from openerp.exceptions import except_orm
 
+SELL_ORDER_STATES = [
+        ('draft', u'草稿'),
+        ('approved', u'已审核'),
+        ('confirmed', u'未出库'),
+        ('part_out', u'部分出库'),
+        ('all_out', u'全部出库'),
+    ]
+SELL_DELIVERY_STATES = [
+        ('draft', u'草稿'),
+        ('approved', u'已审核'),
+        ('confirmed', u'未收款'),
+        ('part_receipted', u'部分收款'),
+        ('receipted', u'全部收款'),
+    ]
 READONLY_STATES = {
         'approved': [('readonly', True)],
         'confirmed': [('readonly', True)],
     }
 
-class sell_order(osv.osv):
+class sell_order(models.Model):
     _name = 'sell.order'
     _description = "Sell Order"
     _inherit = ['mail.thread']
     _order = 'date desc, id desc'
-    _columns = {
-                'name': fields.char(u'单据编号',copy=False),
-                'partner_id': fields.many2one('partner',u'客户',states=READONLY_STATES),
-                'staff_id': fields.many2one('staff',u'销售员',states=READONLY_STATES),
-                'date': fields.date(u'单据日期',copy=False,states=READONLY_STATES),
-                'delivery_date': fields.date(u'交货日期',states=READONLY_STATES),
-                'note': fields.text(u'备注',states=READONLY_STATES),
-                'line_ids': fields.one2many('sell.order.line', 'order_id',u'销售订单行',states=READONLY_STATES),
-                'benefit_rate': fields.float(u'优惠率(%)',states=READONLY_STATES),
-                'benefit_amount': fields.float(u'优惠额',states=READONLY_STATES),
-                'amount_total': fields.float(u'优惠后金额',states=READONLY_STATES),
-                'type': fields.selection([('sell',u'销货'),('return',u'退货')],u'订单类型'),
-                'state': fields.selection([
-                                          ('draft', u'未审核'),
-                                          ('approved', u'已审核'),
-                                          ('confirmed', u'销售发货单'),
-                                          ('cancel', u'已取消'),
-                                           ], u'状态', readonly=True, copy=False),                
-                'validator_id': fields.many2one('res.users', u'审核人', copy=False),
-                }
-    _defaults = {
-                 'date': fields.datetime.now,
-                 'state': 'draft',
-                 'name': lambda obj, cr, uid, context: '/',
-                 'type': 'sell',
-                 }
-    
+
+    @api.one
+    @api.depends('line_ids.subtotal', 'benefit_rate')
+    def _compute_amount(self):
+        '''计算订单合计金额，并且当优惠率改变时，改变优惠金额和优惠后金额'''
+        self.total = sum(line.subtotal for line in self.line_ids)
+        self.benefit_amount = self.total * self.benefit_rate * 0.01
+        self.amount = self.total - self.benefit_amount
+
+    partner_id = fields.Many2one('partner', u'客户', states=READONLY_STATES)
+    staff_id = fields.Many2one('staff',u'销售员',states=READONLY_STATES)
+    date = fields.Date(u'单据日期', states=READONLY_STATES, default=lambda self: fields.Date.context_today(self),
+            select=True, help=u"默认是订单创建日期", copy=False)
+    delivery_date = fields.Date(u'交货日期', states=READONLY_STATES, default=lambda self: fields.Date.context_today(self), select=True, help=u"订单的预计交货日期")
+    type = fields.Selection([('sell',u'销货'),('return', u'退货')], u'类型', default='sell')
+    name = fields.Char(u'单据编号', select=True, copy=False,
+        default='/', help=u"创建时它会自动生成有序编号")
+    line_ids = fields.One2many('sell.order.line', 'order_id', u'销售订单行', states=READONLY_STATES, copy=True)
+    note = fields.Text(u'备注', states=READONLY_STATES)
+    benefit_rate = fields.Float(u'优惠率(%)', states=READONLY_STATES)
+    benefit_amount = fields.Float(string=u'优惠金额', store=True, states=READONLY_STATES,
+            compute='_compute_amount', track_visibility='always')
+    amount = fields.Float(string=u'优惠后金额', store=True, states=READONLY_STATES,
+            compute='_compute_amount', track_visibility='always')
+    validator_id = fields.Many2one('res.users', u'审核人', copy=False)
+    state = fields.Selection(SELL_ORDER_STATES, u'订单状态', readonly=True, help=u"销售订单的状态", select=True, copy=False, default='draft')
+
     _sql_constraints = [
-                        ('name_uniq','unique(name)','销售订单号必须唯一！'),
-                        ]
-    
-    def create(self, cr, uid, vals, context=None):
-        if vals.get('name','/') == '/':
-            vals['name'] = self.pool.get('ir.sequence').get(cr, uid, 'sell.order', context=context)or '/'
-        context = dict(context or {}, mail_create_nolog=True)
-        order =  super(sell_order, self).create(cr, uid, vals, context=context)
-        self.message_post(cr, uid, [order], body=u'销售单已创建', context=context)
-        return order      
-    
-    def onchange_benefit_rate(self, cr, uid, ids, benefit_rate, context=None):
-         '''当优惠率改变时，改变优惠金额和优惠后金额'''
-         total = 0
-         for line in self.browse(cr, uid, ids, context=context).line_ids:
-             total += line.tax_amount_total
-         benefit_amount = total * benefit_rate * 0.01
-         return {'value':{
-                          'benefit_amount': benefit_amount,
-                          'amount_total': total - benefit_amount,
-                          }
-                 }  
-    
-    def submit_order_button(self, cr, uid, ids, context=None):
-        '''销货订单审核，还需修改'''
-        assert len(ids) == 1, u'这个选项应该只适用于一个id'
-        self.write(cr, uid, ids, {'state':'approved','validator_id':uid}, context=context)
-        return True   
+        ('name_uniq','unique(name)','销售订单号必须唯一！'),
+    ]
 
-    def sell_refuse_button(self, cr, uid, ids, context=None):
+    @api.model
+    def create(self, vals):
+        if not vals.get('line_ids'):
+            raise except_orm(u'警告！', u'请输入产品明细行！')
+        if vals.get('name', '/') == '/':
+            vals['name'] = self.env['ir.sequence'].get(self._name) or '/'
+        return super(sell_order, self).create(vals)
+
+    @api.one
+    def sell_approve(self):
+        '''销货订单审核'''
+        self.write({'state': 'approved', 'validator_id': self._uid})
+        return True
+
+    @api.one
+    def sell_refuse(self):
         '''反审核销货订单'''
-        assert len(ids) == 1, u'这个选项应该只适用于一个id'
-        self.write(cr, uid, ids, {'state': 'draft'}, context=context)
+        if self.state == 'confirmed':
+            raise except_orm(u'警告！', u'该单据已经生成了关联单据，不能反审核！')
+        self.write({'state': 'draft', 'validator_id': ''})
         return True
 
-    def sell_delivery_button(self, cr, uid, ids, context=None):
+    @api.one
+    def sell_generate_delivery(self):
         '''由销货订单生成的销售发货单，未完成'''
-        assert len(ids) == 1, u'这个选项应该只适用于一个id'
-        self.write(cr, uid, ids, {'state': 'confirmed'}, context=context)
+        self.write({'state': 'confirmed'})
         return True
     
-        
-class sell_order_line(osv.osv):
+
+class sell_order_line(models.Model):
     _name = 'sell.order.line'
     _description = u'销货订单明细'
-    _columns = {
-                'order_id': fields.many2one('sell.order',u'销售订单'),
-                'goods_id': fields.many2one('goods',u'商品'),
-                'spec': fields.char(u'属性'),#产品的属性，选择产品时自动从产品管理表获取
-                'uom_id': fields.many2one('uom',u'单位'),
-                'warehouse_id': fields.many2one(u'warehouse',u'仓库'),
-                'quantity': fields.float(u'数量'),
-                'price': fields.float(u'销售单价'),
-                'discount_rate': fields.float(u'折扣率(%)'),
-                'discount_amount': fields.float(u'折扣额'),
-                'amount': fields.float(u'金额'),
-                'tax_rate': fields.float(u'税率(%)'),
-                'tax_amount': fields.float(u'税额'),
-                'tax_amount_total': fields.float(u'价税合计'), 
-                'line_note': fields.text(u'备注'),               
-                }
-    
-    def onchange_price(self, cr, uid, ids, price, quantity, discount_rate, tax_rate, context=None):
-        '''当销货单价，数量，折扣率，税率改变时，改变折扣额，金额，税额，价税合计'''
-        amt = price * quantity
-        discount_amt = amt * discount_rate * 0.01
-        amount = amt - discount_amt
-        tax_amt = amount * tax_rate * 0.01
-        return {'value':{
-                         'discount_amount': discount_amt,
-                         'amount': amount,
-                         'tax_amount': tax_amt,
-                         'tax_amount_total': amount + tax_amt,
-                         }
-                }
 
+    @api.one
+    @api.depends('goods_id')
+    def _compute_uom_id(self):
+        '''当订单行的产品变化时，带出产品上的单位'''
+        self.uom_id = self.goods_id.uom_id
 
-class sell_delivery(osv.osv):
-    _inherit = 'wh.move'
+    @api.model
+    def _default_warehouse(self):
+        context = self._context or {}
+        if context.get('warehouse_type'):
+            return self.pool.get('warehouse').get_warehouse_by_type(self._cr, self._uid, context.get('warehouse_type'))
+
+        return False
+
+    @api.model
+    def _default_warehouse_dest(self):
+        context = self._context or {}
+        if context.get('warehouse_dest_type'):
+            return self.pool.get('warehouse').get_warehouse_by_type(self._cr, self._uid, context.get('warehouse_dest_type'))
+
+        return False
+
+    @api.one
+    @api.depends('quantity', 'price', 'discount_rate', 'tax_rate')
+    def _compute_all_amount(self):
+        '''当订单行的数量、购货单价、折扣率、税率改变时，改变折扣额、金额、税额、价税合计'''
+        amt = self.quantity * self.price
+        discount_amount = amt * self.discount_rate * 0.01
+        amount = amt - discount_amount
+        tax_amt = amount * self.tax_rate * 0.01
+        self.discount_amount = discount_amount
+        self.amount = amount
+        self.tax_amount = tax_amt
+        self.subtotal = amount + tax_amt
+
+    order_id = fields.Many2one('sell.order', u'订单编号', select=True, required=True, ondelete='cascade')
+    goods_id = fields.Many2one('goods', u'商品')
+    spec = fields.Char(u'属性') #产品的属性，选择产品时自动从产品管理表获取
+    uom_id = fields.Many2one('uom', u'单位', compute=_compute_uom_id)
+    warehouse_id = fields.Many2one('warehouse', u'调出仓库', default=_default_warehouse)
+    warehouse_dest_id = fields.Many2one('warehouse', u'调入仓库', default=_default_warehouse_dest)
+    quantity = fields.Float(u'数量', default=1)
+    price = fields.Float(u'销售单价')
+    discount_rate = fields.Float(u'折扣率%')
+    discount_amount = fields.Float(u'折扣额', compute=_compute_all_amount)
+    amount = fields.Float(u'金额', compute=_compute_all_amount)
+    tax_rate = fields.Float(u'税率(%)')
+    tax_amount = fields.Float(u'税额', compute=_compute_all_amount)
+    subtotal = fields.Float(u'价税合计', compute=_compute_all_amount)
+    line_note = fields.Char(u'备注')
+
+class sell_delivery(models.Model):
     _name = 'sell.delivery'
+    _inherits = {'wh.move': 'sell_move_id'}
     _description = u'销售发货单'
     _order = 'date desc, id desc'
-    _columns = {
-                'staff_id': fields.many2one('staff',u'销售员'),
-                'benefit_rate': fields.float(u'优惠率(%)'),
-                'benefit_amount': fields.float(u'优惠额'),
-                'amount_total': fields.float(u'优惠后金额'),
-                'partner_cost': fields.float(u'客户承担费用'),
-                'receivable': fields.float(u'本次收款'),
-                'account': fields.many2one('bank.account',u'结算账户'),
-                'payable': fields.float(u'本次欠款'),
-                'total_payable': fields.float(u'总欠款'), 
-                'state': fields.selection([
-                                          ('draft', u'发货单草稿'),
-                                          ('approved', u'已审核发货'),
-                                          ('cancel', u'已取消'),
-                                           ], u'状态', readonly=True, copy=False),
-                'validator_id': fields.many2one('res.users', u'审核人', copy=False),                
-                }
-    
-    def submit_delivery_button(self, cr, uid, ids, context=None):
-        '''销售发货单审核，还需修改'''
-        assert len(ids) == 1, u'这个选项应该只适用于一个id'
-        self.write(cr, uid, ids, {'state':'approved','validator_id':uid}, context=context)
-        return True 
-    
-class sell_delivery_line(osv.osv):
+
+    @api.one
+    @api.depends('line_out_ids.subtotal', 'benefit_rate', 'receipt')
+    def _compute_all_amount(self):
+        '''当优惠率改变时，改变优惠金额和优惠后金额'''
+        self.total = sum(line.subtotal for line in self.line_out_ids)
+        self.benefit_amount = self.total * self.benefit_rate * 0.01
+        self.amount = self.total - self.benefit_amount
+        self.debt = self.amount - self.receipt
+
+    sell_move_id = fields.Many2one('wh.move', u'出库单', required=True, ondelete='cascade')
+    staff_id = fields.Many2one('res.users', u'销售员')
+    origin = fields.Char(u'源单号', copy=False)
+    date_due = fields.Date(u'到期日期', copy=False)
+    benefit_rate = fields.Float(u'优惠率(%)', states=READONLY_STATES)
+    benefit_amount = fields.Float(u'优惠金额', default=_compute_all_amount, states=READONLY_STATES)
+    amount = fields.Float(u'优惠后金额', default=_compute_all_amount, states=READONLY_STATES)
+    partner_cost = fields.Float(u'客户承担费用')
+    receipt = fields.Float(u'本次收款', states=READONLY_STATES)
+    bank_account_id = fields.Many2one('bank.account', u'结算账户', default=u'(空)')
+    debt = fields.Float(u'本次欠款', default=_compute_all_amount, copy=False)
+    total_debt = fields.Float(u'总欠款')
+    total_cost = fields.Float(u'销售费用', copy=False)
+    state = fields.Selection(SELL_DELIVERY_STATES, u'收款状态', default='draft', readonly=True, help=u"销售出库单的状态", select=True, copy=False)
+
+    @api.one
+    def submit_delivery_button(self):
+        ''' 销售发货单审核，还需修改'''
+        self.write({'state': 'approved','validator_id': self._uid})
+        return True
+
+class sell_delivery_line(models.Model):
     _inherit = 'wh.move.line'
     _description = u'销售发货单行'
-    _columns = {
-                'spec': fields.char(u'属性'),                
-                'discount_rate': fields.float(u'折扣率(%)'),
-                'discount_amount': fields.float(u'折扣额'),
-                'tax_rate': fields.float(u'税率(%)'),
-                'tax_amount': fields.float(u'税额'),
-                'tax_amount_total': fields.float(u'价税合计'),
-                'origin': fields.char(u'源单据'),               
-                }
-    
+
+    @api.one
+    @api.depends('goods_qty', 'price', 'discount_rate', 'tax_rate')
+    def _compute_all_amount(self):
+        '''当订单行的数量、购货单价、折扣率、税率改变时，改变折扣额、金额、税额、价税合计'''
+        amt = self.goods_qty * self.price
+        discount_amount = amt * self.discount_rate * 0.01
+        amount = amt - discount_amount
+        tax_amt = amount * self.tax_rate * 0.01
+        self.discount_amount = discount_amount
+        self.amount = amount
+        self.tax_amount = tax_amt
+        self.subtotal = amount + tax_amt
+
+    spec = fields.Char(u'属性')
+    discount_rate = fields.Float(u'折扣率%')
+    discount_amount = fields.Float(u'折扣额', compute=_compute_all_amount)
+    tax_rate = fields.Float(u'税率(%)')
+    tax_amount = fields.Float(u'税额', compute=_compute_all_amount)
+    subtotal = fields.Float(u'价税合计', compute=_compute_all_amount)
+    origin = fields.Char(u'源单号')
