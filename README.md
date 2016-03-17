@@ -1,4 +1,6 @@
-在线试用地址：http://gooderp.osbzr.net
+[![Gitter](https://badges.gitter.im/osbzr/gooderp.svg)](https://gitter.im/osbzr/gooderp?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+
+在线试用地址：http://gooderp.osbzr.net   用户名 admin 密码 good
 
 ======
 

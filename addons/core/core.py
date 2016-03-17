@@ -7,7 +7,8 @@ CORE_CATEGORY_TYPE = [('customer',u'客户'),
                       ('goods',u'商品'),
                       ('payment',u'支出'),
                       ('receipt',u'收入'),
-                      ('attribute',u'属性')]
+                      ('attribute',u'属性'),
+                      ('goods',u'产品')]
 CORE_COST_METHOD = [('average',u'移动平均法'),
                     ('fifo',u'先进先出法'),
                     ]
@@ -40,6 +41,7 @@ class settle_mode(models.Model):
 
 class partner(models.Model):
     _name = 'partner'
+    code = fields.Char(u'编号')
     name = fields.Char(u'名称')
     c_category_id = fields.Many2one('core.category',u'客户类别',
                                        domain=[('type','=','customer')],context={'type':'customer'})
@@ -50,8 +52,22 @@ class partner(models.Model):
 
 class goods(models.Model):
     _name = 'goods'
+    code = fields.Char(u'编号')
     name = fields.Char(u'名称')
+    category_id = fields.Many2one('core.category',u'产品类别',
+                                       domain=[('type','=','goods')],context={'type':'goods'})
     uom_id = fields.Many2one('uom',u'计量单位')
+    uos_id = fields.Many2one('uom',u'辅助单位')
+    conversion = fields.Float(u'转化率(1辅助单位等于多少计量单位)')
+    cost = fields.Float(u'成本')
+    price_ids = fields.One2many('goods.price','goods_id',u'价格清单')
+
+class goods_price(models.Model):
+    _name = 'goods.price'
+    goods_id = fields.Many2one('goods','商品')
+    category_id = fields.Many2one('core.category',u'客户类别',
+                                       domain=[('type','=','customer')],context={'type':'customer'})
+    price = fields.Float(u'价格')
 
 class warehouse(models.Model):
     _name = 'warehouse'
