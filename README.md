@@ -4,6 +4,8 @@
 
 ======
 
+[![Join the chat at https://gitter.im/osbzr/gooderp](https://badges.gitter.im/osbzr/gooderp.svg)](https://gitter.im/osbzr/gooderp?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 开阖软件发起的开源ERP项目
 
 如果你有一个苹果，我也有一个苹果，彼此交换后，你我还是一人一个苹果，但是如果你有一个想法，我有一个想法，彼此交换后，你我就都有两个想法，三个人呢？一百个人呢？
