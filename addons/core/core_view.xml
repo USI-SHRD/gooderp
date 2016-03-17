@@ -137,8 +137,9 @@
             <field name="model">partner</field>
             <field name="arch" type="xml">
                 <tree editable="TOP" string="客户">                  
-                    <field name="name"/>
                     <field name="c_category_id" required="1"/>
+                    <field name="code"/>
+                    <field name="name"/>
                     <field name="receivable" sum='sum' readonly='1'/>
                 </tree>
             </field>
@@ -162,6 +163,7 @@
             <field name="arch" type="xml">
                 <tree editable="TOP" string="供应商">
                     <field name="s_category_id" required="1"/>                  
+                    <field name="name"/>
                     <field name="name"/>
                     <field name="payable" sum='sum' readonly='1'/>
                 </tree>
