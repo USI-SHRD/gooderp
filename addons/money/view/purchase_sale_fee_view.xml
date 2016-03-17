@@ -2,73 +2,49 @@
 <openerp>
     <data>
 		<!--销售采购费用清单tree-->
-		<record id="purchase_sale_fee_order_tree" model="ir.ui.view">
-            <field name="name">purchase.sale.fee.order.tree</field>
-            <field name="model">purchase.sale.fee.order</field>
+		<record id="fee_order_tree" model="ir.ui.view">
+            <field name="name">fee.order.tree</field>
+            <field name="model">fee.order</field>
             <field name="arch" type="xml">
-                <tree string="Purchase Sale Fee Order">
+                <tree string="Purchase Sale Fee Order" editable="bottom">
                     <field name="name" string="单据编号"/>
                     <field name="partner_id"/>
                     <field name="date"/>
-                    <field name="type"/>
-                    <field name="state" invisible="1"/>
+                    <field name="amount" sum="合计"/>
+                    <field name="unpaid_amount" sum="合计"/>
+                    <field name="source_id"/>
+					<field name="source_date"/>
+                    <field name="other_payment_list"/>
                 </tree>
             </field>
         </record>
 
         <!--销售采购费用清单form-->
-        <record id="purchase_sale_fee_order_form" model="ir.ui.view">
-            <field name="name">purchase.sale.fee.order.tree</field>
-            <field name="model">purchase.sale.fee.order</field>
+        <record id="fee_order_form" model="ir.ui.view">
+            <field name="name">fee.order.form</field>
+            <field name="model">fee.order</field>
             <field name="arch" type="xml">
-                <form string="Purchase Sale Fee Order">
-                <header>
-                	<button name="pay_expense" states="draft" string="支付费用" type="object" class="oe_highlight"/>
-                    <field name="state" widget="statusbar" statusbar_visible="draft,done" readonly="1"/>
-                </header>
-                <sheet>
-                    <div class="oe_title">
-                        <h1>
-                            <label string="采购销售费用清单 "/>
-                            <field name="name" class="oe_inline" readonly="1"/>
-                        </h1>
-                    </div>
-                    <group>
-                        <group>
-				            <field name="partner_id"/>
-				            <field name="type"/>
-                        </group>
-                        <group>
-                            <field name="date"/>
-                        </group>
-                    </group>
-                    <field name="line_ids">
-						<tree string="Purchase Sale Fee Order Lines" editable="bottom">
-							<field name="partner_id"/>
-                            <field name="pay_type"/>
-                            <field name="amount" sum="合计"/>
-                            <field name="unpaid_amount" sum="合计"/>
-                            <field name="source_id"/>
-							<field name="source_date"/>
-                            <field name="other_payment_list"/>
-                       </tree>
-                    </field>
-                </sheet>
+                <form string="销售采购费用清单">
+                	<field name="partner_id" invisible="1"/>
+		            <footer>
+                        <button name="pay_fee" type="object" default_focus="1" string="确认支付费用" class="oe_highlight"/>
+                        <button string="取消" class="oe_link" special="cancel"/>
+                    </footer>
                 </form>
             </field>
         </record>
 
 		<!--销售采购费用清单search-->
-		<record id="view_purchase_sale_fee_order_filter" model="ir.ui.view">
-            <field name="name">purchase.sale.fee.order.list.select</field>
-            <field name="model">purchase.sale.fee.order</field>
+		<record id="view_fee_order_filter" model="ir.ui.view">
+            <field name="name">fee.order.list.select</field>
+            <field name="model">fee.order</field>
             <field name="arch" type="xml">
                 <search string="Search Purchase Sale Fee Order">
                     <field name="name" string="清单编号" filter_domain="[('name','ilike',self)]"/>
                     <separator/>
-                    <filter string="未付款" name="unpaid" domain="[('type','=','unpaid')]"/>
-                    <filter string="已付款" name="paid" domain="[('type','=','paid')]"/>
-                    <filter string="部分付款" name="partial_paid" domain="[('type','=','partial_paid')]"/>
+                    <filter string="未付款" name="unpaid" domain="[('amount','=',0)]"/>
+                    <filter string="已付款" name="paid" domain="[('unpaid_amount','=',0)]"/>
+                    <filter string="部分付款" name="partial_paid" domain="[('amount','!=',0),('unpaid_amount','!=',0)]"/>
                     <separator/>
                     <group expand="0" string="分组">
                         <filter string="业务伙伴" domain="[]" context="{'group_by':'partner_id'}"/>
@@ -80,21 +56,31 @@
         </record>
 
         <!-- 销售采购费用清单 action -->
-        <record id="purchase_sale_fee_order_action" model="ir.actions.act_window">
+        <record id="fee_order_action" model="ir.actions.act_window">
             <field name="name">销售采购费用清单</field>
             <field name="type">ir.actions.act_window</field>
-            <field name="res_model">purchase.sale.fee.order</field>
-            <field name="view_mode">tree,form</field>
-            <field name="search_view_id" ref="view_purchase_sale_fee_order_filter"/>
+            <field name="res_model">fee.order</field>
+            <field name="view_mode">tree</field>
+            <field name="search_view_id" ref="view_fee_order_filter"/>
             <field name="help" type="html">
               <p class="oe_view_nocontent_create">
                 点击创建销售采购费用清单
               </p>
             </field>
         </record>
+        
+		<!-- 支付费用的wizard action-->
+        <act_window id="pay_fee_action"
+            name="支付费用向导"
+            src_model="fee.order"
+            res_model="fee.order"
+            multi="True"
+            view_type="form"
+            view_mode="form"
+            target="new"/>
 
 		<!-- 销售采购费用清单menu -->
-        <menuitem id="menu_purchase_sale_fee_order_action" action="purchase_sale_fee_order_action" parent="menu_money_manage" sequence="7"/>
+        <menuitem id="menu_fee_order_action" action="fee_order_action" parent="menu_money_manage" sequence="7"/>
 	</data>
 </openerp>
 	

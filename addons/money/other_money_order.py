@@ -33,21 +33,17 @@ class other_money_order(models.Model):
     _description = u'其他应收款/应付款'
 
     TYPE_SELECTION = [
-        ('other_payables', u'其他应付款'),
-        ('other_receipts', u'其他应收款'),
+        ('other_pay', u'其他应付款'),
+        ('other_get', u'其他应收款'),
     ]
 
     @api.model
     def create(self, values):
-        if not values.get('name') and self._context.get('default_other_receipt'):
-            values.update({'name': self.pool['ir.sequence'].get(self._cr, self._uid, 'other_receipt_order', context=self._context) or '/'})
-        if (not values.get('name') and self._context.get('default_other_payment')) or values.get('name', '/') == '/':
-            values.update({'name': self.pool['ir.sequence'].get(self._cr, self._uid, 'other_payment_order', context=self._context) or '/'})
-
-        if self._context.get('default_other_payment'):
-            values.update({'type': 'other_payables'})
-        if self._context.get('default_other_receipt'):
-            values.update({'type': 'other_receipts'})
+        # 创建单据时，更新订单类型的不同，生成不同的单据编号
+        if self._context.get('type') == 'other_get':
+            values.update({'name': self.env['ir.sequence'].get('other_receipt_order') or '/'})
+        if self._context.get('type') == 'other_pay' and values.get('name', '/') == '/':
+            values.update({'name': self.env['ir.sequence'].get('other_payment_order') or '/'})
 
         return super(other_money_order, self).create(values)
 
@@ -64,7 +60,7 @@ class other_money_order(models.Model):
                            ], string=u'状态', readonly=True, default='draft', copy=False)
     partner_id = fields.Many2one('partner', string=u'业务伙伴', required=True)
     date = fields.Date(string=u'单据日期', default=lambda self: fields.Date.context_today(self))
-    name = fields.Char(string=u'单据编号', copy=False, readonly=True)
+    name = fields.Char(string=u'单据编号', copy=False, readonly=True, default='/')
     total_amount = fields.Float(string=u'金额', compute='_compute_total_amount')
     bank_id = fields.Many2one('bank.account', string=u'结算账户')
     line_ids = fields.One2many('other.money.order.line', 'other_money_id', string=u'收支单行')
@@ -74,7 +70,7 @@ class other_money_order(models.Model):
     def print_other_money_order(self):
         '''打印 其他收入/支出单'''
         assert len(self._ids) == 1, '一次执行只能有一个id'
-        return self.pool['report'].get_action(self._cr, self._uid, self._ids, 'money.report_other_money_order', context=self._context)
+        return self.env['report'].get_action('money.report_other_money_order')
 
 class other_money_order_line(models.Model):
     _name = 'other.money.order.line'
