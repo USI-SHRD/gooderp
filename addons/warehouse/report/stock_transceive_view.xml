@@ -5,7 +5,7 @@
             <field name='name'>report.stock.transceive.tree</field>
             <field name='model'>report.stock.transceive</field>
             <field name='arch' type='xml'>
-                <tree string='商品库存余额表'>
+                <tree string='商品收发明细表'>
                     <field name='goods' />
                     <field name='uom' />
                     <field name='warehouse' />
@@ -22,6 +22,24 @@
                 </tree>
             </field>
         </record>
+
+        <record id='report_stock_transceive_search' model='ir.ui.view'>
+            <field name='name'>report.stock.transceive.search</field>
+            <field name='model'>report.stock.transceive</field>
+            <field name='arch' type='xml'>
+                <search string='商品收发明细表' >
+                    <field name='goods' string='产品' filter_domain="[('goods', 'ilike', self)]" />
+                    <field name='warehouse' string='仓库' filter_domain="[('warehouse', 'ilike', self)]" />
+                    <field name='uom' string='单位' filter_domain="[('uom', 'ilike', self)]" />
+
+                    <group expand="0" string="Group By">
+                        <filter string="产品" context="{'group_by':'goods'}"/>
+                        <filter string="仓库" context="{'group_by': 'warehouse'}"/>
+                        <filter string="单位" context="{'group_by': '单位'}"/>
+                    </group>
+                </search>
+            </field>
+        </record> 
 
         <record id='report_stock_transceive_graph' model='ir.ui.view'>
             <field name='name'>report.stock.transceive.graph</field>
