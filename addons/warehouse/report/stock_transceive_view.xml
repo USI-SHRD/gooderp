@@ -35,7 +35,7 @@
                     <group expand="0" string="Group By">
                         <filter string="产品" context="{'group_by':'goods'}"/>
                         <filter string="仓库" context="{'group_by': 'warehouse'}"/>
-                        <filter string="单位" context="{'group_by': '单位'}"/>
+                        <filter string="单位" context="{'group_by': 'uom'}"/>
                     </group>
                 </search>
             </field>

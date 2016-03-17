@@ -19,6 +19,24 @@ class report_stock_balance(osv.osv):
         'cost': fields.float(u'成本', digits_compute=dp.get_precision('Accounting')),
     }
 
+    def read_group(self, cr, uid, domain, fields, groupby, offset=0, limit=None, context=None, orderby=False, lazy=True):
+        res = super(report_stock_balance, self).read_group(cr, uid, domain, fields, groupby, offset=offset, limit=limit, context=context, orderby=False, lazy=True)
+
+        print '--------------read_group-------------'
+        print '   domain', domain
+        print '   fields', fields
+        print '   groupby', groupby
+        print '   offset', offset
+        print '   limit', limit
+        print '   context', context
+        print '   orderby', orderby
+        print '   lazy', lazy
+
+        from pprint import pprint
+        pprint(res)
+
+        return res
+
     def init(self, cr):
         tools.drop_view_if_exists(cr, 'report_stock_balance')
         cr.execute(

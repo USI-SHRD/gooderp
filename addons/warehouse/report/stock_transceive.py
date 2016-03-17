@@ -3,6 +3,8 @@
 # from openerp import tools
 from openerp.osv import fields
 from openerp.osv import osv
+import itertools
+import operator
 import openerp.addons.decimal_precision as dp
 
 
@@ -194,6 +196,40 @@ class report_stock_transceive(osv.osv):
     def _compute_domain(self, result, domain):
         return filter(lambda res: self._compute_domain_util(res, domain), result)
 
+    def read_group(self, cr, uid, domain, fields, groupby, offset=0, limit=80, context=None, orderby=False, lazy=True):
+
+        def dict_plus(collect, values):
+            for key, value in values.iteritems():
+                if isinstance(value, (long, int, float)):
+                    if key not in collect:
+                        collect[key] = 0
+                    collect[key] += value
+
+            collect[groupby[0] + '_count'] += 1
+
+            return collect
+
+        res = []
+        values = self.search_read(cr, uid, domain=domain, fields=fields, offset=offset, limit=limit or 80, order=orderby, context=context)
+
+        if groupby:
+            key = operator.itemgetter(groupby[0])
+            for group, itervalue in itertools.groupby(sorted(values, key=key), key):
+                collect = {'__domain': [(groupby[0], '=', group)], groupby[0]: group, groupby[0] + '_count': 0}
+                collect = reduce(lambda collect, value: dict_plus(collect, value), itervalue, collect)
+
+                if len(groupby) > 1:
+                    collect.update({
+                            '__context': {'group_by': groupby[1:]}
+                        })
+
+                if domain:
+                    collect['__domain'].extend(domain)
+
+                res.append(collect)
+
+        return res
+
     def _compute_order(self, result, order):
         # TODO 暂时不支持多重排序
         if order:
@@ -205,7 +241,7 @@ class report_stock_transceive(osv.osv):
     def _compute_limit_and_offset(self, result, limit, offset):
         return result[offset:limit + offset]
 
-    def search_read(self, cr, uid, domain=None, fields=None, offset=0, limit=None, order=None, context=None):
+    def search_read(self, cr, uid, domain=None, fields=None, offset=0, limit=80, order=None, context=None):
         context = context or {}
 
         out_collection = self.collect_history_stock_by_sql(cr, sql_type='out', context=context)
