@@ -23,18 +23,18 @@ from openerp import fields, models, api
 from openerp.exceptions import except_orm
 
 BUY_ORDER_STATES = [
-        ('draft', '草稿'),
-        ('approved', '已审核'),
-        ('confirmed', '未入库'),
-        ('part_in', '部分入库'),
-        ('all_in', '全部入库'),
+        ('draft', u'草稿'),
+        ('approved', u'已审核'),
+        ('confirmed', u'未入库'),
+        ('part_in', u'部分入库'),
+        ('all_in', u'全部入库'),
     ]
 BUY_RECEIPT_STATES = [
-        ('draft', '草稿'),
-        ('approved', '已审核'),
-        ('confirmed', '未付款'),
-        ('part_paid', '部分付款'),
-        ('paid', '全部付款'),
+        ('draft', u'草稿'),
+        ('approved', u'已审核'),
+        ('confirmed', u'未付款'),
+        ('part_paid', u'部分付款'),
+        ('paid', u'全部付款'),
     ]
 READONLY_STATES = {
         'approved': [('readonly', True)],
@@ -56,22 +56,22 @@ class buy_order(models.Model):
 
     partner_id = fields.Many2one('partner', u'供应商', required=True, states=READONLY_STATES)
     date = fields.Date(u'单据日期', states=READONLY_STATES, default=lambda self: fields.Date.context_today(self),
-            select=True, help=u"描述了询价单转换成采购订单的日期，默认是订单创建日期。", copy=False)
+            select=True, help=u"默认是订单创建日期", copy=False)
     planned_date = fields.Date(u'交货日期', states=READONLY_STATES, default=lambda self: fields.Date.context_today(self), select=True, help=u"订单的预计交货日期")
     name = fields.Char(u'单据编号', required=True, select=True, copy=False,
         default='/', help=u"采购订单的唯一编号，当创建时它会自动生成有序编号。")
-    type = fields.Selection([('buy','购货'),('return','退货')], u'类型', default='buy')
+    type = fields.Selection([('buy', u'购货'),('return', u'退货')], u'类型', default='buy')
     line_ids = fields.One2many('buy.order.line', 'order_id', u'采购订单行', states=READONLY_STATES, copy=True)
     notes = fields.Text(u'备注', states=READONLY_STATES)
-    discount_rate = fields.Float(u'优惠率(%)', states=READONLY_STATES)
-    validator_id = fields.Many2one('res.users', u'审核人', copy=False)
-    state = fields.Selection(BUY_ORDER_STATES, u'订单状态', readonly=True, help=u"采购订单的状态", select=True, copy=False, default='draft')
     total = fields.Float(string=u'合计', store=True,
             compute='_compute_amount', track_visibility='always', help=u'所有订单行小计之和')
+    discount_rate = fields.Float(u'优惠率(%)', states=READONLY_STATES)
     discount_amount = fields.Float(string=u'优惠金额', store=True, states=READONLY_STATES,
             compute='_compute_amount', track_visibility='always')
     amount = fields.Float(string=u'优惠后金额', store=True, states=READONLY_STATES,
             compute='_compute_amount', track_visibility='always')
+    validator_id = fields.Many2one('res.users', u'审核人', copy=False)
+    state = fields.Selection(BUY_ORDER_STATES, u'订单状态', readonly=True, help=u"采购订单的状态", select=True, copy=False, default='draft')
 
     _sql_constraints = [
         ('name_uniq', 'unique(name)', '采购订单号必须唯一!'),
@@ -79,10 +79,11 @@ class buy_order(models.Model):
 
     @api.model
     def create(self, vals):
+        if not vals.get('line_ids'):
+            raise except_orm(u'警告！', u'请输入产品明细行！')
         if vals.get('name', '/') == '/':
-            vals['name'] = self.env['ir.sequence'].get('buy.order') or '/'
-        new_id = super(buy_order, self).create(vals)
-        return new_id
+            vals['name'] = self.env['ir.sequence'].get(self._name) or '/'
+        return super(buy_order, self).create(vals)
 
     @api.one
     def buy_approve(self):
@@ -93,13 +94,14 @@ class buy_order(models.Model):
     @api.one
     def buy_refuse(self):
         '''反审核购货订单'''
-        self.write({'state': 'draft'})
+        if self.state == 'confirmed':
+            raise except_orm(u'警告！', u'该单据已经生成了关联单据，不能反审核！')
+        self.write({'state': 'draft', 'validator_id': ''})
         return True
 
     @api.one
     def buy_generate_order(self):
         '''由购货订单生成采购入库单'''
-        assert(len(self._ids) == 1), 'This option should only be used for a single id at a time'
 
         res = []
         dict = []
@@ -126,7 +128,7 @@ class buy_order(models.Model):
 
         for i in range(len(dict)):
             ret.append((0, 0, dict[i]))
-        receipt_id = self.pool.get('buy.receipt').create(self._cr, self._uid, {
+        receipt_id = self.env['buy.receipt'].create({
                             'partner_id': self.partner_id.id,
                             'origin': self.name,
                             'line_in_ids': ret,
@@ -135,8 +137,7 @@ class buy_order(models.Model):
                             'amount': self.amount,
 #                             'total_cost':,
                             'state': 'draft',
-                        }, context=self._context)
-        res.append(receipt_id)
+                        })
         view_id = self.env['ir.model.data'].xmlid_to_res_id('buy.buy_receipt_form')
         self.write({'state': 'confirmed'})
         return {
@@ -195,7 +196,7 @@ class buy_order_line(models.Model):
     uom_id = fields.Many2one('uom', u'单位', compute=_compute_uom_id)
     warehouse_id = fields.Many2one('warehouse', u'调出仓库', default=_default_warehouse)
     warehouse_dest_id = fields.Many2one('warehouse', u'调入仓库', default=_default_warehouse_dest)
-    quantity = fields.Float(u'数量')
+    quantity = fields.Float(u'数量', default=1)
     price = fields.Float(u'购货单价')
     discount_rate = fields.Float(u'折扣率%')
     discount = fields.Float(u'折扣额', compute=_compute_all_amount)
@@ -241,11 +242,12 @@ class buy_receipt(models.Model):
         b = (self.payment==0)
         c = vals.get('bank_account_id')
         d = (vals.get('payment')==0)
-        print a,b,c,d
         if (a or c) and d:
             raise except_orm(u'警告！', u'结算账户不为空时，需要输入付款额！')
         elif not b and not (a or c):
             raise except_orm(u'警告！', u'付款额不为空时，请选择结算账户！')
+        if vals.get('name', '/') == '/':
+            vals['name'] = self.env['ir.sequence'].get(self._name) or '/'
         return super(buy_receipt, self).create(vals)
 
     @api.multi

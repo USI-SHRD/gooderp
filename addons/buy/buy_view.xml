@@ -30,7 +30,7 @@
                 <header>
                 	<button name="buy_approve" states="draft" string="审核" type="object" class="oe_highlight"/>
                 	<button name="buy_refuse" states="approved,confirmed" string="反审核" type="object"/>
-                    <button name="buy_generate_order" states="approved,confirmed" string="生成采购入库单" type="object" class="oe_highlight"/>
+                    <button name="buy_generate_order" states="approved" string="生成采购入库单" type="object" class="oe_highlight"/>
                     <field name="state" widget="statusbar" statusbar_visible="draft,approved,confirmed" statusbar_colors='{"approved":"blue"}' readonly="1"/>
                 </header>
                 <sheet>
