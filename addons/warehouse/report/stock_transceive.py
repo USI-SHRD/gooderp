@@ -130,27 +130,20 @@ class report_stock_transceive(osv.osv):
         if not isinstance(domain, list):
             raise osv.except_osv(u'错误', u'不可识别的domain条件，请检查domain"%s"是否正确' % domain)
 
+    def _get_next_domain(self, domains, index):
+        domain = domains[index]
+        if domain == '|':
+            _, index = self.get_next_or_domain(domains, index + 1)
+        else:
+            index += 1
+            self.check_valid_domain(domain)
+
+        return index
+
     def get_next_or_domain(self, domains, index):
-        left_index, right_index, current_index = [index] * 3
-        domain = domains[current_index]
-        current_index += 1
-        if domain == '|':
-            _, current_index = self.get_next_or_domain(domains, current_index)
-        else:
-            self.check_valid_domain(domain)
+        index = self._get_next_domain(domains, index)
 
-        left_index = current_index
-
-        domain = domains[current_index]
-        current_index += 1
-        if domain == '|':
-            _, current_index = self.get_next_or_domain(domains, current_index)
-        else:
-            self.check_valid_domain(domain)
-
-        right_index = current_index
-
-        return left_index, right_index
+        return index, self._get_next_domain(domains, index)
 
     def _process_domain(self, result, domain):
         if domain and len(domain) == 3:
@@ -185,10 +178,11 @@ class report_stock_transceive(osv.osv):
             index += 1
             if domain == '|':
                 left_index, right_index = self.get_next_or_domain(domains, index)
-                index = right_index
 
                 if not self._compute_domain_util(result, domains[index:left_index]) and not self._compute_domain_util(result, domains[left_index:right_index]):
                     return False
+
+                index = right_index
 
             else:
                 self.check_valid_domain(domain)
