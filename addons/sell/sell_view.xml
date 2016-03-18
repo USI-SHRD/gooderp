@@ -7,14 +7,15 @@
         	<field name='model'>sell.order</field>
         	<field name='arch' type='xml'> 
             	<tree string='销货订单' >
-            		<field name='name'/>
-            		<field name='partner_id'/>
-            		<field name='staff_id'/>
             		<field name='date'/>
-            		<field name='delivery_date'/>
-            		<field name='note'/>
-            		<field name='line_ids'/>
+            		<field name='name'/>
+            		<field name='type'/>
+            		<field name='staff_id'/>
+            		<field name='partner_id'/>
             		<field name='state'/>
+            		<field name='delivery_date'/>
+            		<field name="create_uid" string="制单人"/>
+                    <field name="approve_uid"/>
             	</tree>
         	</field> 
     	</record>
@@ -33,19 +34,19 @@
             		</header>
             		<sheet>
             			<div class="oe_title">
-                         <h1>
-                             <label string="销货订单 " states='draft'/>                             
-                         </h1>
-                     </div>
+                        	<h1>
+                            	<label string="销货订单 "/>
+                        	</h1>
+                     	</div>
             			<group>
             				<group>
-            					<field name='name' readonly="1"/>
             					<field name='partner_id' required="1"/>
             					<field name='staff_id'/>
+            					<field name='date'/>
             				</group>
             				<group>
-            					<field name='date'/>
             					<field name='delivery_date'/>
+            					<field name='name' readonly="1"/>
             					<field name='type' widget="radio"/>           					
             				</group> 
             			</group>
@@ -60,6 +61,7 @@
 				 						<field name='warehouse_dest_id'/>
                  						<field name='quantity' sum='数量合计'/>
 				 						<field name='price'/>
+				 						<field name="price_taxed"/>
 				 						<field name='discount_rate'/>
                  						<field name='discount_amount' sum='折扣额合计' />
 				 						<field name='amount' sum='金额合计'/>
@@ -68,7 +70,8 @@
 				 						<field name='subtotal' sum='价税合计'/>
 				 						<field name='line_note'/>
 				 					</tree>
-				 				</field>				 				
+				 				</field>
+				 				<field name="note" placeholder="暂无备注信息"/>
 				 				<group>
                         			<group col="6" colspan="6">
                             			<field name="benefit_rate"/>
@@ -79,12 +82,11 @@
                     			<group>
                         			<group col="8" colspan="2">
                             			<field name="create_uid" readonly="1" string="制单人"/>
-                            			<field name="validator_id" readonly="1"/>
+                            			<field name="approve_uid" readonly="1"/>
                             			<field name="create_date" readonly="1" string="录单时间"/>
                             			<field name="write_date" readonly="1" string="最后修改时间"/>
                         			</group>
                     			</group>
-                    			<field name="note" placeholder="暂无备注信息"/>				 				
 				 			</page>
 				 		</notebook>
             		</sheet>
@@ -101,13 +103,18 @@
         	<field name='name'>sell.delivery.tree</field>
         	<field name='model'>sell.delivery</field>
         	<field name='arch' type='xml'> 
-            	<tree string='销售订单发货单' >
+            	<tree string='销售订单发货单'>
+            		<field name='date'/>
             		<field name='name'/>
-            		<field name='partner_id'/>
+            		<field name="origin"/>
             		<field name='staff_id'/>
-            		<!-- <field name='date'/>
-            		<field name='note'/>
-            		<field name='line_out_ids'/> -->
+            		<field name='partner_id'/>
+            		<field name="amount"/>
+            		<field name='receipt'/>
+            		<field name='state'/>
+            		<field name='date_due'/>
+            		<field name="create_uid" string="制单人"/>
+                    <field name="approve_uid"/>
             	</tree>
         	</field> 
     	</record>
@@ -119,70 +126,69 @@
         	<field name='arch' type='xml'> 
             	<form string='销售发货单' >
             		<header>
-            			<button name ='submit_delivery_button' states="draft" type = 'object' string = '审核发货单' class = 'oe_highlight'/>
+            			<button name='sell_out_approve' states="draft" type='object' string='审核发货单' class='oe_highlight'/>
+            			<button name="sell_out_refuse" states="approved,confirmed,part_receipted" string="反审核" type="object"/>
 						<field name='state' widget='statusbar' statusbar_visible="draft,approved"/>
             		</header>
             		<sheet>
             			<div class="oe_title">
-                         <h1>
-                             <label string="销售发货单 " states='draft'/>                             
-                         </h1>
-                     </div>
+                        	<h1>
+                            	<label string="销售发货单 "/>
+                        	</h1>
+                     	</div>
             			<group>
             				<group>
-            					<field name='name' readonly="1"/>
-            					<field name='partner_id' required="1"/>            					            					
+            					<field name='partner_id' required='1' attrs="{'readonly': [('state','!=','draft')]}"/>
+            					<field name='staff_id' attrs="{'readonly': [('state','!=','draft')]}"/>
+            					<field name='date' attrs="{'readonly': [('state','!=','draft')]}"/>
             				</group>
             				<group>
-            					<field name='staff_id'/>
-            					<field name='date'/>          					
+            					<field name='date_due' required='1' attrs="{'readonly': [('state','!=','draft')]}"/>
+            					<field name='name' readonly='1'/>
+            					<field name='origin' readonly='1'/>
             				</group> 
             			</group>
-            			<notebook> 
-            				<page string="销售发货单行">    		
-            					<field name='line_out_ids'>
-                 					<tree string='销售发货单行' editable='bottom'>
-                 						<field name='goods_id'/>
-                 						<field name='spec'/>
-				 						<field name='uom_id'/>
-				 						<field name='warehouse_id'/>
-                 						<field name='goods_qty' sum='数量合计'/>
-				 						<field name='price'/>
-				 						<field name='discount_rate'/>
-                 						<field name='discount_amount' sum='折扣额合计' />
-				 						<field name='subtotal' sum='金额合计'/>
-				 						<field name='tax_rate'/>
-                 						<field name='tax_amount' sum='税额合计'/>
-				 						<field name='subtotal' sum='价税合计'/>
-				 						<field name='note'/>
-				 						<field name='origin'/>
-				 					</tree>
-				 				</field>		 				
-				 				<group>
-                        			<group>
-                            			<field name="benefit_rate"/>
-                            			<field name="receipt"/>
-                            			<field name="create_uid" readonly="1" string="制单人"/>
-                        			</group>
-                        			<group>
-                        				<field name="benefit_amount"/>
-                        				<field name="bank_account_id"/>
-                        				<field name="approve_uid" readonly="1"/>
-                        			</group>
-                        			<group>
-                        				<field name="amount"/>
-                        				<field name="debt"/>
-                        				<field name="create_date" readonly="1" string="录单时间"/>
-                        			</group>
-                        			<group>
-                        				<field name="partner_cost"/>
-                        				<field name="total_debt"/>
-                        				<field name="write_date" readonly="1" string="最后修改时间"/>
-                        			</group>
-                    			</group>                    		
-                    			<field name="note" placeholder="暂无备注信息"/>				 				
-				 			</page>
-				 		</notebook>
+    					<field name='line_out_ids' attrs="{'readonly': [('state','!=','draft')]}"
+    						context="{'warehouse_type': 'stock', 'warehouse_dest_type': 'customer'}">
+         					<tree string='销售发货单行' editable='bottom'>
+         						<field name='goods_id'/>
+         						<field name='spec'/>
+		 						<field name='uom_id'/>
+		 						<field name='warehouse_id'/>
+		 						<field name='warehouse_dest_id'/>
+         						<field name='goods_qty' sum='数量合计'/>
+		 						<field name='price'/>
+		 						<field name="price_taxed"/>
+		 						<field name='discount_rate'/>
+         						<field name='discount_amount' sum='折扣额合计'/>
+		 						<field name='amount' sum='金额合计'/>
+		 						<field name='tax_rate'/>
+         						<field name='tax_amount' sum='税额合计'/>
+		 						<field name='subtotal' sum='价税合计'/>
+		 						<field name='note'/>
+		 						<field name='origin'/>
+		 					</tree>
+		 				</field>
+		 				<field name="note" placeholder="暂无备注信息" attrs="{'readonly': [('state','!=','draft')]}"/>
+		 				<group>
+                			<group>
+                    			<field name="benefit_rate" attrs="{'readonly': [('state','!=','draft')]}"/>
+                    			<field name="benefit_amount"/>
+                    			<field name="amount"/>
+                    			<field name="partner_cost" attrs="{'readonly': [('state','!=','draft')]}"/>
+                    			<field name="total_cost" attrs="{'readonly': [('state','!=','draft')]}"/>
+                    			<field name="create_uid" readonly="1" string="制单人"/>
+                    			<field name="approve_uid" readonly="1"/>
+                			</group>
+                			<group>
+                				<field name="receipt" attrs="{'readonly': [('state','!=','draft')]}"/>
+                				<field name="bank_account_id" attrs="{'readonly': [('state','!=','draft')]}"/>
+                				<field name="debt"/>
+                				<field name="total_debt"/>
+                				<field name="create_date" readonly="1" string="录单时间"/>
+                				<field name="write_date" readonly="1" string="最后修改时间"/>
+                			</group>
+            			</group>
             		</sheet>
             	</form>
         	</field> 

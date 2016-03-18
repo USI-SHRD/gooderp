@@ -62,7 +62,7 @@ class buy_order(models.Model):
         default='/', help=u"采购订单的唯一编号，当创建时它会自动生成有序编号。")
     type = fields.Selection([('buy', u'购货'),('return', u'退货')], u'类型', default='buy')
     line_ids = fields.One2many('buy.order.line', 'order_id', u'采购订单行', states=READONLY_STATES, copy=True)
-    notes = fields.Text(u'备注', states=READONLY_STATES)
+    note = fields.Text(u'备注', states=READONLY_STATES)
     total = fields.Float(string=u'合计', store=True,
             compute='_compute_amount', track_visibility='always', help=u'所有订单行小计之和')
     discount_rate = fields.Float(u'优惠率(%)', states=READONLY_STATES)
@@ -70,7 +70,7 @@ class buy_order(models.Model):
             compute='_compute_amount', track_visibility='always')
     amount = fields.Float(string=u'优惠后金额', store=True, states=READONLY_STATES,
             compute='_compute_amount', track_visibility='always')
-    validator_id = fields.Many2one('res.users', u'审核人', copy=False)
+    approve_uid = fields.Many2one('res.users', u'审核人', copy=False)
     state = fields.Selection(BUY_ORDER_STATES, u'订单状态', readonly=True, help=u"采购订单的状态", select=True, copy=False, default='draft')
 
     _sql_constraints = [
@@ -88,7 +88,7 @@ class buy_order(models.Model):
     @api.one
     def buy_approve(self):
         '''审核购货订单'''
-        self.write({'state': 'approved', 'validator_id': self._uid})
+        self.write({'state': 'approved', 'approve_uid': self._uid})
         return True
 
     @api.one
@@ -96,25 +96,32 @@ class buy_order(models.Model):
         '''反审核购货订单'''
         if self.state == 'confirmed':
             raise except_orm(u'警告！', u'该单据已经生成了关联单据，不能反审核！')
-        self.write({'state': 'draft', 'validator_id': ''})
+        self.write({'state': 'draft', 'approve_uid': ''})
         return True
 
     @api.one
     def buy_generate_order(self):
         '''由购货订单生成采购入库单'''
-
-        res = []
         dict = []
         ret = []
 
         for line in self.line_ids:
+            # 如果订单部分入库，则点击此按钮时生成剩余数量的入库单
+            goods_qty = line.quantity
+            qty = 0
+            if self.state == 'part_in':
+                for order in self.env['buy.receipt'].search([('origin', '=', self.name), ('state', '!=', 'draft')]):
+                    for line_in in order.line_in_ids:
+                        if line.goods_id == line_in.goods_id:
+                            qty += line_in.goods_qty
+                goods_qty = line.quantity - qty
             dict.append({
                 'goods_id': line.goods_id and line.goods_id.id or '',
                 'spec': line.spec,
                 'uom_id': line.uom_id.id,
                 'warehouse_id': line.warehouse_id and line.warehouse_id.id or '',
                 'warehouse_dest_id': line.warehouse_dest_id and line.warehouse_dest_id.id or '',
-                'goods_qty': line.quantity,
+                'goods_qty': goods_qty,
                 'price': line.price,
                 'discount_rate': line.discount_rate,
                 'discount': line.discount,
@@ -130,8 +137,10 @@ class buy_order(models.Model):
             ret.append((0, 0, dict[i]))
         receipt_id = self.env['buy.receipt'].create({
                             'partner_id': self.partner_id.id,
+                            'date': fields.Date.context_today(self),
                             'origin': self.name,
                             'line_in_ids': ret,
+                            'note': self.note,
                             'discount_rate': self.discount_rate,
                             'discount_amount': self.discount_amount,
                             'amount': self.amount,
@@ -148,7 +157,7 @@ class buy_order(models.Model):
             'views': [(view_id, 'form')],
             'res_model': 'buy.receipt',
             'type': 'ir.actions.act_window',
-            'domain':[('id','=',receipt_id)],
+            'domain':[('id', '=', receipt_id)],
             'target': 'current',
         }
 
@@ -186,6 +195,7 @@ class buy_order_line(models.Model):
         discount = amt * self.discount_rate * 0.01
         amount = amt - discount
         tax_amt = amount * self.tax_rate * 0.01
+        self.price_taxed = self.price * (1 + self.tax_rate * 0.01)
         self.discount = discount
         self.amount = amount
         self.tax_amount = tax_amt
@@ -198,10 +208,11 @@ class buy_order_line(models.Model):
     warehouse_dest_id = fields.Many2one('warehouse', u'调入仓库', default=_default_warehouse_dest)
     quantity = fields.Float(u'数量', default=1)
     price = fields.Float(u'购货单价')
+    price_taxed = fields.Float(u'含税单价', compute=_compute_all_amount)
     discount_rate = fields.Float(u'折扣率%')
     discount = fields.Float(u'折扣额', compute=_compute_all_amount)
     amount = fields.Float(u'金额', compute=_compute_all_amount)
-    tax_rate = fields.Float(u'税率(%)')
+    tax_rate = fields.Float(u'税率(%)', default=17.0)
     tax_amount = fields.Float(u'税额', compute=_compute_all_amount)
     subtotal = fields.Float(u'价税合计', compute=_compute_all_amount)
     note = fields.Char(u'备注')
@@ -269,11 +280,9 @@ class buy_receipt(models.Model):
         order = self.env['buy.order'].search([('name', '=', self.origin)])
         for line in order.line_ids:
             if line.goods_id.id == self.line_in_ids.goods_id.id:
-                if line.quantity < self.line_in_ids.goods_qty:
-                    raise except_orm(u'警告！', u'入库数量不能超过购货订单数量！')
-                elif line.quantity > self.line_in_ids.goods_qty:
+                if line.quantity > self.line_in_ids.goods_qty:
                     order.write({'state': 'part_in'})
-                else:
+                elif line.quantity == self.line_in_ids.goods_qty:
                     order.write({'state': 'all_in'})
 
         if self.payment > self.amount:
@@ -296,7 +305,7 @@ class buy_receipt(models.Model):
                             'reconciled': 0.0,
                             'to_reconcile': self.debt,
                             'date_due': self.date_due,
-#                             'state': 'done',
+                            'state': 'done',
                         })
         return True
 
@@ -318,16 +327,18 @@ class buy_receipt_line(models.Model):
         discount = amt * self.discount_rate * 0.01
         amount = amt - discount
         tax_amt = amount * self.tax_rate * 0.01
+        self.price_taxed = self.price * (1 + self.tax_rate * 0.01)
         self.discount = discount
         self.amount = amount
         self.tax_amount = tax_amt
         self.subtotal = amount + tax_amt
 
     spec = fields.Char(u'属性')
+    price_taxed = fields.Float(u'含税单价', compute=_compute_all_amount)
     discount_rate = fields.Float(u'折扣率%')
     discount = fields.Float(u'折扣额', compute=_compute_all_amount)
     amount = fields.Float(u'购货金额', compute=_compute_all_amount)
-    tax_rate = fields.Float(u'税率(%)')
+    tax_rate = fields.Float(u'税率(%)', default=17.0)
     tax_amount = fields.Float(u'税额', compute=_compute_all_amount)
     subtotal = fields.Float(u'价税合计', compute=_compute_all_amount)
     share_cost = fields.Float(u'采购费用')
