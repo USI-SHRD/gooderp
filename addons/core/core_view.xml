@@ -163,7 +163,7 @@
             <field name="arch" type="xml">
                 <tree editable="TOP" string="供应商">
                     <field name="s_category_id" required="1"/>                  
-                    <field name="name"/>
+                    <field name="code"/>
                     <field name="name"/>
                     <field name="payable" sum='sum' readonly='1'/>
                 </tree>
