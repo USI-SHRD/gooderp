@@ -102,18 +102,26 @@ class buy_order(models.Model):
     @api.one
     def buy_generate_order(self):
         '''由购货订单生成采购入库单'''
-
         dict = []
         ret = []
 
         for line in self.line_ids:
+            # 如果订单部分入库，则点击此按钮时生成剩余数量的入库单
+            goods_qty = line.quantity
+            qty = 0
+            if self.state == 'part_in':
+                for order in self.env['buy.receipt'].search([('origin', '=', self.name), ('state', '!=', 'draft')]):
+                    for line_in in order.line_in_ids:
+                        if line.goods_id == line_in.goods_id:
+                            qty += line_in.goods_qty
+                goods_qty = line.quantity - qty
             dict.append({
                 'goods_id': line.goods_id and line.goods_id.id or '',
                 'spec': line.spec,
                 'uom_id': line.uom_id.id,
                 'warehouse_id': line.warehouse_id and line.warehouse_id.id or '',
                 'warehouse_dest_id': line.warehouse_dest_id and line.warehouse_dest_id.id or '',
-                'goods_qty': line.quantity,
+                'goods_qty': goods_qty,
                 'price': line.price,
                 'discount_rate': line.discount_rate,
                 'discount': line.discount,

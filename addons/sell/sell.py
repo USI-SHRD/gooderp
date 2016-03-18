@@ -203,7 +203,7 @@ class sell_delivery(models.Model):
         self.benefit_amount = self.total * self.benefit_rate * 0.01
         self.amount = self.total - self.benefit_amount
         self.debt = self.amount - self.receipt
-        self.total_debt = self.debt + self.partner_id.receivable
+        self.total_debt = self.partner_id.receivable
 
     sell_move_id = fields.Many2one('wh.move', u'出库单', required=True, ondelete='cascade')
     staff_id = fields.Many2one('res.users', u'销售员')
@@ -244,7 +244,7 @@ class sell_delivery(models.Model):
         d = (vals.get('receipt')==0)
         if (a or c) and d:
             raise except_orm(u'警告！', u'结算账户不为空时，需要输入收款额！')
-        elif (not b or not d) and not (a or c):
+        elif not b and not (a or c):
             raise except_orm(u'警告！', u'收款额不为空时，请选择结算账户！')
         return super(sell_delivery, self).write(vals)
 
@@ -267,6 +267,10 @@ class sell_delivery(models.Model):
             self.write({'state': 'part_receipted'})
         else:
             self.write({'state': 'receipted'})
+
+        # 审核之后更新客户的应收余额
+        partner = self.env['partner'].search([('name', '=', self.partner_id.name)])
+        partner.write({'receivable': self.debt + self.total_debt})
         self.write({'approve_uid': self._uid})
 
         # 生成源单
