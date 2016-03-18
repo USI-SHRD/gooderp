@@ -20,14 +20,13 @@
         </record>
 
         <!--销售采购费用清单form-->
-        <record id="fee_order_form" model="ir.ui.view">
-            <field name="name">fee.order.form</field>
-            <field name="model">fee.order</field>
+        <record id="fee_order_wizard_form" model="ir.ui.view">
+            <field name="name">fee.order.wizard.form</field>
+            <field name="model">fee.order.wizard</field>
             <field name="arch" type="xml">
-                <form string="销售采购费用清单">
-                	<field name="partner_id" invisible="1"/>
+                <form string="费用清单支付向导">
 		            <footer>
-                        <button name="pay_fee" type="object" default_focus="1" string="确认支付费用" class="oe_highlight"/>
+                        <button name="pay_fee" type="object" default_focus="1" string="确认支付" class="oe_highlight"/>
                         <button string="取消" class="oe_link" special="cancel"/>
                     </footer>
                 </form>
@@ -73,14 +72,14 @@
         <act_window id="pay_fee_action"
             name="支付费用向导"
             src_model="fee.order"
-            res_model="fee.order"
+            res_model="fee.order.wizard"
             multi="True"
             view_type="form"
             view_mode="form"
             target="new"/>
 
 		<!-- 销售采购费用清单menu -->
-        <menuitem id="menu_fee_order_action" action="fee_order_action" parent="menu_money_manage" sequence="7"/>
+        <menuitem id="menu_fee_order_action" action="fee_order_action" parent="menu_money_manage" sequence="8"/>
 	</data>
 </openerp>
 	

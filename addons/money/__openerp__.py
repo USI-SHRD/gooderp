@@ -11,6 +11,7 @@
         'view/other_money_order_view.xml',
         'view/money_transfer_order_view.xml',
         'view/purchase_sale_fee_view.xml',
+        'view/reconcile_order_view.xml',
         'data/money_sequence.xml',
         ]
 }
