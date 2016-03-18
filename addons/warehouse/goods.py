@@ -37,12 +37,12 @@ class goods(osv.osv):
         # TODO 产品上需要一个字段来记录成本
         return 1
 
-    def get_suggested_cost_by_warehouse(self, cr, uid, ids, warehouse_id, qty, context=None):
+    def get_suggested_cost_by_warehouse(self, cr, uid, ids, warehouse, qty, context=None):
         if isinstance(ids, (long, int)):
             ids = [ids]
 
         records, subtotal = self.get_matching_records(cr, uid,
-            ids, warehouse_id, qty, ignore_stock=True, context=context)
+            ids, warehouse, qty, ignore_stock=True, context=context)
 
         matching_qty = sum(record.get('qty') for record in records)
         if matching_qty:
@@ -60,14 +60,14 @@ class goods(osv.osv):
 
         return False
 
-    def get_matching_records(self, cr, uid, ids, warehouse_id, qty, ignore_stock=False, context=None):
+    def get_matching_records(self, cr, uid, ids, warehouse, qty, ignore_stock=False, context=None):
         line_obj = self.pool.get('wh.move.line')
         matching_records = []
         for goods in self.browse(cr, uid, ids, context=context):
             domain = [
                 ('qty_remaining', '>', 0),
                 ('state', '=', 'done'),
-                ('warehouse_dest_id', '=', warehouse_id),
+                ('warehouse_dest_id', '=', warehouse.id),
                 ('goods_id', '=', goods.id)
             ]
 
