@@ -56,11 +56,12 @@
                             <field name="note"/>
                        </tree>
                     </field>
-                    <button name="button_select_source_order" string="选择源单" type="object" />
+                    <label string="选择源单"/>
                     <field name="source_ids">
                     	<tree string="Source Order Lines" editable="bottom">
                     		<field name="state" invisible="1"/>
                     		<field name="name" readonly='1'/>
+							<field name="partner_id" readonly='1'/>
                     		<field name="business_type" readonly='1'/>
                             <field name="date" readonly='1'/>
                             <field name="amount" readonly='1' sum="合计"/>

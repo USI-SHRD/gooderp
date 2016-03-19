@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <openerp>
     <data noupdate="1">
-        <!--  收款单序列号 --> 
+        <!--  收款单序列号 -->
         <record id="seq_type_receipt_order" model="ir.sequence.type">
             <field name="name">Receipt Order</field>
             <field name="code">receipt_order</field>
@@ -13,7 +13,7 @@
             <field name="padding">5</field>
         </record>
 
-        <!--  付款单序列号 --> 
+        <!--  付款单序列号 -->
         <record id="seq_type_payment_order" model="ir.sequence.type">
             <field name="name">Payment Order</field>
             <field name="code">payment_order</field>
@@ -25,7 +25,7 @@
             <field name="padding">5</field>
         </record>
 
-        <!--  其他收款单序列号 --> 
+        <!--  其他收款单序列号 -->
         <record id="seq_type_other_receipt_order" model="ir.sequence.type">
             <field name="name">Other Receipt Order</field>
             <field name="code">other_receipt_order</field>
@@ -37,7 +37,7 @@
             <field name="padding">5</field>
         </record>
 
-        <!--  其他付款单序列号 --> 
+        <!--  其他付款单序列号 -->
         <record id="seq_type_other_payment_order" model="ir.sequence.type">
             <field name="name">Other Payment Order</field>
             <field name="code">other_payment_order</field>
@@ -49,7 +49,7 @@
             <field name="padding">5</field>
         </record>
 
-        <!--  资金转账单序列号 --> 
+        <!--  资金转账单序列号 -->
         <record id="seq_type_money_transfer_order" model="ir.sequence.type">
             <field name="name">Money Transfer Order</field>
             <field name="code">money_transfer_order</field>
@@ -70,6 +70,18 @@
             <field name="name">Purchase Sale Fee Order</field>
             <field name="code">fee_order</field>
             <field name="prefix">POSF%(year)s/</field>
+            <field name="padding">5</field>
+        </record>
+
+        <!--  核销单序列号 -->
+        <record id="seq_type_reconcile_order" model="ir.sequence.type">
+            <field name="name">Reconcile Order</field>
+            <field name="code">reconcile_order</field>
+        </record>
+        <record id="seq_reconcile_order" model="ir.sequence">
+            <field name="name">Reconcile Order</field>
+            <field name="code">reconcile_order</field>
+            <field name="prefix">RO%(year)s/</field>
             <field name="padding">5</field>
         </record>
     </data>
