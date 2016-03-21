@@ -80,7 +80,7 @@
             <field name='model'>wh.move.line</field>
             <field name='arch' type='xml'>
                 <tree string='库存调拨' editable='bottom'>
-                    <field name='goods_id' required='1' on_change='onchange_goods_by_in(goods_id, goods_qty)' />
+                    <field name='goods_id' required='1' />
                     <field name='uom_id' required='1' />
                     <field name='using_batch' invisible='1' />
                     <field name='force_batch_one' invisible='1' />
@@ -117,7 +117,7 @@
                         <group>
                             <group>
                                 <field name='date' required='1' attrs="{'readonly': [('state', '!=', 'draft')]}" />
-                                <field name='bom_id' options="{'no_create': 1}" on_change='onchange_bom(bom_id)' attrs="{'readonly': [('state', '!=', 'draft')]}" />
+                                <field name='bom_id' options="{'no_create': 1}" attrs="{'readonly': [('state', '!=', 'draft')]}" />
                             </group>
                             <group>
                                 <field name='fee' attrs="{'readonly': [('state', '!=', 'draft')]}" />
@@ -204,7 +204,7 @@
                         <group>
                             <group>
                                 <field name='date' required='1' attrs="{'readonly': [('state', '!=', 'draft')]}" />
-                                <field name='bom_id' options="{'no_create': 1}" on_change='onchange_bom(bom_id)' attrs="{'readonly': [('state', '!=', 'draft')]}" />
+                                <field name='bom_id' options="{'no_create': 1}" attrs="{'readonly': [('state', '!=', 'draft')]}" />
                             </group>
                             <group>
                                 <field name='fee' attrs="{'readonly': [('state', '!=', 'draft')]}" />

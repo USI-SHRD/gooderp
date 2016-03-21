@@ -27,11 +27,11 @@ class wh_move_matching(models.Model):
 class wh_move_line(models.Model):
     _inherit = 'wh.move.line'
 
-    qty_remaining = fields.float(compute='_get_qty_remaining', string='剩余数量',
-        digits_compute=dp.get_precision('Goods Quantity'), index=True),
+    qty_remaining = fields.Float(compute='_get_qty_remaining', string=u'剩余数量',
+        digits_compute=dp.get_precision('Goods Quantity'), index=True, store=True)
 
-    matching_in_ids = fields.one2many('wh.move.matching', 'line_in_id'),
-    matching_out_ids = fields.one2many('wh.move.matching', 'line_out_id'),
+    matching_in_ids = fields.One2many('wh.move.matching', 'line_in_id', string=u'关联的入库')
+    matching_out_ids = fields.One2many('wh.move.matching', 'line_out_id', string=u'关联的出库')
 
     @api.multi
     def copy_data(self):
@@ -76,13 +76,13 @@ class wh_move_line(models.Model):
                         line.warehouse_id.id, line.goods_qty)
 
                     for matching in matching_records:
-                        matching_obj.create_matchingmatching.get('line_in_id'),
+                        matching_obj.create_matching(matching.get('line_in_id'),
                             line.id, matching.get('qty'))
 
                 line.price = safe_division(subtotal, line.goods_qty)
                 line.subtotal = subtotal
 
-        return super(wh_move_line, self).prev_action_done(cr, uid, ids, context=context)
+        return super(wh_move_line, self).prev_action_done()
 
     @api.multi
     def prev_action_cancel(self):
@@ -93,4 +93,4 @@ class wh_move_line(models.Model):
             line.matching_in_ids.unlink()
             line.matching_out_ids.unlink()
 
-        return super(wh_move_line, self).prev_action_cancel(cr, uid, ids, context=context)
+        return super(wh_move_line, self).prev_action_cancel()

@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
 
 from openerp.osv import osv
-from openerp.osv import fields
 import openerp.addons.decimal_precision as dp
 from utils import safe_division
 from jinja2 import Environment, PackageLoader
+from openerp import models, fields, api
 
 env = Environment(loader=PackageLoader('openerp.addons.warehouse', 'html'), autoescape=True)
 
 
-class wh_move_line(osv.osv):
+class wh_move_line(models.Model):
     _name = 'wh.move.line'
 
     MOVE_LINE_TYPE = [
@@ -22,26 +22,62 @@ class wh_move_line(osv.osv):
         ('done', u'已审核'),
     ]
 
-    def default_get(self, cr, uid, fields, context=None):
-        res = super(wh_move_line, self).default_get(cr, uid, fields, context=context)
-        context = context or {}
-        if context.get('goods_id') and context.get('warehouse_id'):
+    @api.model
+    def _get_default_warehouse(self):
+        if self.env.context.get('warehouse_type'):
+            return self.env['warehouse'].get_warehouse_by_type(self.envcontext.get('warehouse_type'))
+
+        return False
+
+    @api.model
+    def _get_default_warehouse_dest(self, cr, uid, context=None):
+        if self.env.context.get('warehouse_dest_type'):
+            return self.env['warehouse'].get_warehouse_by_type(self.env.context.get('warehouse_dest_type'))
+
+        return False
+
+    move_id = fields.Many2one('wh.move', string=u'移库单', ondelete='cascade')
+    date = fields.Datetime(u'完成日期', copy=False)
+    type = fields.Selection(MOVE_LINE_TYPE, u'类型', default=lambda self: self.env.context.get('type'),)
+    state = fields.Selection(MOVE_LINE_STATE, u'状态', copy=False, default='draft')
+    goods_id = fields.Many2one('goods', string=u'产品', required=True, index=True)
+    using_batch = fields.Boolean(related='goods_id.using_batch', string=u'批次管理')
+    force_batch_one = fields.Boolean(related='goods_id.force_batch_one', string=u'每批次数量为1')
+    lot = fields.Char(u'序列号')
+    lot_id = fields.Many2one('wh.move.line', u'序列号')
+    lot_qty = fields.Float(related='lot_id.qty_remaining', string=u'序列号数量')
+    production_date = fields.Date(u'生产日期', default=fields.Date.context_today)
+    shelf_life = fields.Integer(u'保质期(天)')
+    valid_date = fields.Date(u'有效期至')
+    uom_id = fields.Many2one('uom', string=u'单位')
+    warehouse_id = fields.Many2one('warehouse', string=u'调出仓库', required=True, default=_get_default_warehouse)
+    warehouse_dest_id = fields.Many2one('warehouse', string=u'调入仓库', required=True, default=_get_default_warehouse_dest)
+    goods_qty = fields.Float(u'数量', digits_compute=dp.get_precision('Goods Quantity'), default=1)
+    price = fields.Float(u'单价', digits_compute=dp.get_precision('Accounting'))
+    subtotal = fields.Float(u'金额', digits_compute=dp.get_precision('Accounting'))
+    note = fields.Text(u'备注')
+
+    @api.model
+    def default_get(self, fields):
+        res = super(wh_move_line, self).default_get(fields)
+        if self.env.context.get('goods_id') and self.env.context.get('warehouse_id'):
             res.update({
-                'goods_id': context.get('goods_id'),
-                'warehouse_id': context.get('warehouse_id')
+                'goods_id': self.env.context.get('goods_id'),
+                'warehouse_id': self.env.context.get('warehouse_id')
             })
 
         return res
 
-    def get_real_price(self, cr, uid, ids, context=None):
-        for line in self.browse(cr, uid, ids, context=context):
+    @api.multi
+    def get_real_price(self):
+        for line in self:
             return safe_division(line.subtotal, line.goods_qty)
 
-    def name_get(self, cr, uid, ids, context=None):
-        context = context or {}
+    @api.multi
+    def name_get(self):
         res = []
-        for line in self.browse(cr, uid, ids, context=context):
-            if context.get('lot'):
+        for line in self:
+            if self.env.context.get('lot'):
                 res.append((line.id, '%s-%s' % (line.lot, line.qty_remaining)))
             else:
                 res.append((line.id, '%s-%s->%s(%s, %s%s)' %
@@ -49,33 +85,36 @@ class wh_move_line(osv.osv):
                         line.goods_id.name, str(line.goods_qty), line.uom_id.name)))
         return res
 
+    @api.one
     def check_availability(self, cr, uid, ids, context=None):
-        for line in self.browse(cr, uid, ids, context=context):
-            if line.warehouse_dest_id.id == line.warehouse_id.id:
-                raise osv.except_osv(u'错误', u'调出仓库不可以和调入仓库一样')
+        if self.warehouse_dest_id == self.warehouse_id:
+            raise osv.except_osv(u'错误', u'调出仓库不可以和调入仓库一样')
 
-        return True
-
-    def prev_action_done(self, cr, uid, ids, context=None):
+    @api.multi
+    def prev_action_done(self):
         pass
 
-    def action_done(self, cr, uid, ids, context=None):
-        for line in self.browse(cr, uid, ids, context=context):
+    @api.multi
+    def action_done(self):
+        for line in self:
             line.check_availability()
             line.prev_action_done()
             line.write({
                 'state': 'done',
-                'date': fields.datetime.now(cr, uid),
+                'date': fields.Datetime.now(self),
             })
 
-    def check_cancel(self, cr, uid, ids, context=None):
+    @api.multi
+    def check_cancel(self):
         pass
 
-    def prev_action_cancel(self, cr, uid, ids, context=None):
+    @api.multi
+    def prev_action_cancel(self):
         pass
 
-    def action_cancel(self, cr, uid, ids, context=None):
-        for line in self.browse(cr, uid, ids, context=context):
+    @api.multi
+    def action_cancel(self):
+        for line in self:
             line.check_cancel()
             line.prev_action_cancel()
             line.write({
@@ -83,135 +122,78 @@ class wh_move_line(osv.osv):
                 'date': False,
             })
 
-    def _get_default_warehouse(self, cr, uid, context=None):
-        context = context or {}
-        if context.get('warehouse_type'):
-            return self.pool.get('warehouse').get_warehouse_by_type(cr, uid, context.get('warehouse_type'))
-
-        return False
-
-    def _get_default_warehouse_dest(self, cr, uid, context=None):
-        context = context or {}
-        if context.get('warehouse_dest_type'):
-            return self.pool.get('warehouse').get_warehouse_by_type(cr, uid, context.get('warehouse_dest_type'))
-
-        return False
-
-    def _get_subtotal_util(self, cr, uid, goods_qty, price, context=None):
+    @api.model
+    def _get_subtotal_util(self, goods_qty, price):
         return goods_qty * price
 
-    def onchange_price_by_out(self, cr, uid, ids, goods_id, warehouse_id, goods_qty, context=None):
-        if goods_id and warehouse_id and goods_qty:
-            subtotal, price = self.pool.get('goods').get_suggested_cost_by_warehouse(
-                cr, uid, goods_id, warehouse_id, goods_qty, context=context)
+    @api.one
+    def compute_lot_compatible(self):
+        if self.warehouse_id and self.lot_id and self.lot_id.warehouse_dest_id != self.warehouse_id:
+            self.lot_id = False
 
-            return {'value': {
-                'price': price,
-                'subtotal': subtotal,
-            }}
+        if self.goods_id and self.lot_id and self.lot_id.goods_id != self.goods_id:
+            self.lot_id = False
 
-        return {}
+    @api.multi
+    def compute_lot_domain(self):
+        lot_domain = [('goods_id', '=', self.goods_id.id), ('state', '=', 'done'),
+            ('lot', '!=', False), ('qty_remaining', '>', 0)]
 
-    def onchange_price_by_in(self, cr, uid, ids, goods_qty, price, context=None):
-        if goods_qty and price:
-            return {'value': {'subtotal': self._get_subtotal_util(
-                cr, uid, goods_qty, price, context=context)}}
+        if self.warehouse_id:
+            lot_domain.append(('warehouse_dest_id', '=', self.warehouse_id.id))
 
-        return {'value': {'subtotal': 0}}
+        return lot_domain
 
-    def onchange_goods_by_in(self, cr, uid, ids, goods_id, goods_qty, context=None):
-        # TODO 需要计算保质期
-        if goods_id:
-            goods = self.pool.get('goods').browse(cr, uid, goods_id, context=context)
-            return {'value': {
-                'uom_id': goods.uom_id.id,
-                'using_batch': goods.using_batch,
-                'force_batch_one': goods.force_batch_one,
-                'goods_qty': goods.force_batch_one and 1 or goods_qty,
-            }}
+    @api.one
+    def compute_suggested_cost(self):
+        if self.type == 'out' and self.goods_id and self.warehouse_id and self.goods_qty:
+            subtotal, price = self.goods_id.get_suggested_cost_by_warehouse(self.warehouse_id, self.goods_qty)
 
-        return {}
+            self.price = price
+            self.subtotal = subtotal
 
-    def onchange_lot_out(self, cr, uid, ids, lot_id, context=None):
-        if lot_id:
-            lot = self.browse(cr, uid, lot_id, context=context)
-            return {'value': {'warehouse_id': lot.warehouse_dest_id.id,
-                'goods_qty': lot.qty_remaining, 'lot_qty': lot.qty_remaining}}
+    @api.multi
+    @api.onchange('goods_id')
+    def onchange_goods_id(self):
+        if self.goods_id and self.goods_id.using_batch and self.goods_id.force_batch_one:
+            self.goods_qty = 1
 
-        return {}
+        self.compute_suggested_cost()
+        self.compute_lot_compatible()
 
-    def onchange_goods_by_out(self, cr, uid, ids, goods_id, warehouse_id, lot_id, goods_qty, compute_price=True, context=None):
-        res = {}
-        lot_domain = [('goods_id', '=', goods_id), ('state', '=', 'done'), ('lot', '!=', False), ('qty_remaining', '>', 0)]
+        return {'domain': {'lot_id': self.compute_lot_domain()}}
 
-        if goods_id:
-            goods = self.pool.get('goods').browse(cr, uid, goods_id, context=context)
-            res.update({
-                'uom_id': goods.uom_id.id,
-                'using_batch': goods.using_batch,
-                'force_batch_one': goods.force_batch_one,
-            })
+    @api.multi
+    @api.onchange('warehouse_id')
+    def onchange_warehouse_id(self):
+        self.compute_suggested_cost()
+        self.compute_lot_domain()
 
-            if warehouse_id:
-                if compute_price and goods_qty:
-                    subtotal, price = self.pool.get('goods').get_suggested_cost_by_warehouse(
-                        cr, uid, goods_id, warehouse_id, goods_qty, context=context)
+        return {'domain': {'lot_id': self.compute_lot_domain()}}
 
-                    res.update({
-                            'price': price,
-                            'subtotal': subtotal,
-                        })
+    @api.one
+    @api.onchange('goods_qty')
+    def onchange_goods_qty(self):
+        self.compute_suggested_cost()
 
-                lot_domain.append(('warehouse_dest_id', '=', warehouse_id))
+    @api.one
+    @api.onchange('lot_id')
+    def onchange_lot_id(self):
+        if self.lot_id:
+            self.warehouse_id = self.lot_id.warehouse_dest_id
+            self.goods_qty = self.lot_id.qty_remaining
+            self.lot_qty = self.lot_id.qty_remaining
 
-        if lot_id:
-            lot = self.browse(cr, uid, lot_id, context=context)
-            if warehouse_id and lot.warehouse_dest_id.id != warehouse_id:
-                res.update({'lot_id': False})
+    @api.one
+    @api.onchange('price')
+    def onchange_price(self):
+        self.subtotal = self.price and self.price \
+            and self._get_subtotal_util(self.goods_qty, self.price) or 0
 
-            if goods_id and lot.goods_id.id != goods_id:
-                res.update({'lot_id': False})
-
-        return {'value': res, 'domain': {'lot_id': lot_domain}}
-
-    def onchange_goods_by_internal(self, cr, uid, ids, goods_id, goods_qty, context=None):
-        return self.onchange_goods_by_in(cr, uid, ids, goods_id, goods_qty, context=context)
-
-    def unlink(self, cr, uid, ids, context=None):
-        for line in self.browse(cr, uid, ids, context=context):
+    @api.multi
+    def unlink(self):
+        for line in self:
             if line.state == 'done':
                 raise osv.except_osv(u'错误', u'不可以删除已经完成的明细')
 
-        return super(wh_move_line, self).unlink(cr, uid, ids, context=context)
-
-    _columns = {
-        'move_id': fields.many2one('wh.move', string=u'移库单', ondelete='cascade'),
-        'date': fields.datetime(u'完成日期', copy=False),
-        'type': fields.selection(MOVE_LINE_TYPE, u'类型'),
-        'state': fields.selection(MOVE_LINE_STATE, u'状态', copy=False),
-        'goods_id': fields.many2one('goods', string=u'产品', required=True, index=True),
-        'using_batch': fields.related('goods_id', 'using_batch', type='boolean', string=u'批次管理'),
-        'force_batch_one': fields.related('goods_id', 'force_batch_one', type='boolean', string=u'每批次数量为1'),
-        'lot': fields.char(u'序列号'),
-        'lot_id': fields.many2one('wh.move.line', u'序列号'),
-        'lot_qty': fields.related('lot_id', 'qty_remaining', type='float', string=u'序列号数量'),
-        'production_date': fields.date(u'生产日期'),
-        'shelf_life': fields.integer(u'保质期(天)'),
-        'valid_date': fields.date(u'有效期至'),
-        'uom_id': fields.many2one('uom', string=u'单位'),
-        'warehouse_id': fields.many2one('warehouse', string=u'调出仓库', required=True),
-        'warehouse_dest_id': fields.many2one('warehouse', string=u'调入仓库', required=True),
-        'goods_qty': fields.float(u'数量', digits_compute=dp.get_precision('Goods Quantity')),
-        'price': fields.float(u'单价', digits_compute=dp.get_precision('Accounting')),
-        'subtotal': fields.float(u'金额', digits_compute=dp.get_precision('Accounting')),
-        'note': fields.text(u'备注'),
-    }
-
-    _defaults = {
-        'type': lambda self, cr, uid, ctx=None: ctx.get('type'),
-        'goods_qty': lambda self, cr, uid, ctx=None: 1,
-        'state': 'draft',
-        'production_date': fields.date.context_today,
-        'warehouse_id': _get_default_warehouse,
-        'warehouse_dest_id': _get_default_warehouse_dest,
-    }
+        return super(wh_move_line, self).unlink()

@@ -2,7 +2,7 @@ openerp.web_sublist = function(instance) {
     var QWeb = instance.web.qweb;
     var RELATION_TAG = 'RELATION_SUBLIST_MULTI';
 
-    instance.warehouse.relationSublist = instance.web.list.Column.extend({
+    instance.web_sublist.relationSublist = instance.web.list.Column.extend({
         _format: function(row_data, options) {
             if (this.widget === 'relation_sublist') {
 
@@ -68,6 +68,6 @@ openerp.web_sublist = function(instance) {
         }
     })
 
-    instance.web.list.columns.add('field.relation_sublist', 'instance.warehouse.relationSublist');
+    instance.web.list.columns.add('field.relation_sublist', 'instance.web_sublist.relationSublist');
 
 };

@@ -60,9 +60,8 @@ class goods(models.Model):
 
     @api.multi
     def get_matching_records(self, warehouse, qty, ignore_stock=False):
-        line_obj = self.pool.get('wh.move.line')
         matching_records = []
-        for goods in self):
+        for goods in self:
             domain = [
                 ('qty_remaining', '>', 0),
                 ('state', '=', 'done'),
@@ -71,7 +70,7 @@ class goods(models.Model):
             ]
 
             # TODO @zzx需要在大量数据的情况下评估一下速度
-            lines = self.env['wh.move.line'].search(domain, order='date, id't)
+            lines = self.env['wh.move.line'].search(domain, order='date, id')
             qty_to_go, subtotal = qty, 0
             for line in lines:
                 if qty_to_go <= 0:

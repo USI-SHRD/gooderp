@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 
 from openerp.osv import osv
-from openerp.osv import fields
 from utils import inherits, inherits_after, create_name
 import openerp.addons.decimal_precision as dp
+from openerp import models, fields, api
 
 
-class wh_out(osv.osv):
+class wh_out(models.Model):
     _name = 'wh.out'
 
     _inherits = {
@@ -18,47 +18,37 @@ class wh_out(osv.osv):
         ('others', u'其他出库'),
     ]
 
+    move_id = fields.Many2one('wh.move', u'移库单', required=True, index=True, ondelete='cascade')
+    type = fields.Selection(TYPE_SELECTION, u'业务类别', default='others')
+    amount_total = fields.Float(compute='_get_amount_total', string=u'合计金额', digits_compute=dp.get_precision('Accounting'))
+
+    @api.multi
     @inherits()
-    def approve_order(self, cr, uid, ids, context=None):
+    def approve_order(self):
         return True
 
+    @api.multi
     @inherits()
-    def cancel_approved_order(self, cr, uid, ids, context=None):
+    def cancel_approved_order(self):
         return True
 
+    @api.multi
     @inherits_after()
-    def unlink(self, cr, uid, ids, context=None):
-        return super(wh_out, self).unlink(cr, uid, ids, context=context)
+    def unlink(self):
+        return super(wh_out, self).unlink()
 
-    def get_line(self, cr, uid, ids, context=None):
-        for order in self.browse(cr, uid, ids, context=context):
-            yield order, order.line_out_ids
+    @api.one
+    @api.depends('line_out_ids.subtotal')
+    def _get_amount_total(self):
+        self.amount_total = sum(line.subtotal for line in self.line_out_ids)
 
-    def _get_amount_total(self, cr, uid, ids, field_name, arg, context=None):
-        res = {}
-        for order, lines in self.get_line(cr, uid, ids, context=context):
-            res.update({
-                order.id: sum(line.subtotal for line in lines),
-            })
-
-        return res
-
+    @api.model
     @create_name
     def create(self, cr, uid, vals, context=None):
         return super(wh_out, self).create(cr, uid, vals, context=context)
 
-    _columns = {
-        'move_id': fields.many2one('wh.move', u'移库单', required=True, index=True, ondelete='cascade'),
-        'type': fields.selection(TYPE_SELECTION, u'业务类别'),
-        'amount_total': fields.function(_get_amount_total, type='float', string=u'合计金额', digits_compute=dp.get_precision('Accounting')),
-    }
 
-    _defaults = {
-        'type': 'others',
-    }
-
-
-class wh_in(osv.osv):
+class wh_in(models.Model):
     _name = 'wh.in'
 
     _inherits = {
@@ -70,44 +60,34 @@ class wh_in(osv.osv):
         ('others', u'其他入库'),
     ]
 
+    move_id = fields.Many2one('wh.move', u'移库单', required=True, index=True, ondelete='cascade')
+    type = fields.Selection(TYPE_SELECTION, u'业务类别', default='others')
+    amount_total = fields.Float(compute='_get_amount_total', string=u'合计金额', digits_compute=dp.get_precision('Accounting'))
+
+    @api.multi
     @inherits()
-    def approve_order(self, cr, uid, ids, context=None):
+    def approve_order(self):
         return True
 
+    @api.multi
     @inherits()
-    def cancel_approved_order(self, cr, uid, ids, context=None):
+    def cancel_approved_order(self):
         return True
 
+    @api.multi
     @inherits_after()
-    def unlink(self, cr, uid, ids, context=None):
-        return super(wh_in, self).unlink(cr, uid, ids, context=context)
+    def unlink(self):
+        return super(wh_in, self).unlink()
 
-    def get_line(self, cr, uid, ids, context=None):
-        for order in self.browse(cr, uid, ids, context=context):
-            yield order, order.line_in_ids
+    @api.one
+    @api.depends('line_in_ids.subtotal')
+    def _get_amount_total(self):
+        self.amount_total = sum(line.subtotal for line in self.line_in_ids)
 
-    def _get_amount_total(self, cr, uid, ids, field_name, arg, context=None):
-        res = {}
-        for order, lines in self.get_line(cr, uid, ids, context=context):
-            res.update({
-                order.id: sum(line.subtotal for line in lines),
-            })
-
-        return res
-
+    @api.model
     @create_name
-    def create(self, cr, uid, vals, context=None):
-        return super(wh_in, self).create(cr, uid, vals, context=context)
-
-    _columns = {
-        'move_id': fields.many2one('wh.move', u'移库单', required=True, index=True, ondelete='cascade'),
-        'type': fields.selection(TYPE_SELECTION, u'业务类别'),
-        'amount_total': fields.function(_get_amount_total, type='float', string=u'合计金额', digits_compute=dp.get_precision('Accounting')),
-    }
-
-    _defaults = {
-       'type': 'others',
-    }
+    def create(self, vals):
+        return super(wh_in, self).create(vals)
 
 
 class wh_internal(osv.osv):
@@ -117,36 +97,30 @@ class wh_internal(osv.osv):
         'wh.move': 'move_id',
     }
 
+    move_id = fields.Many2one('wh.move', u'移库单', required=True, index=True, ondelete='cascade')
+    amount_total = fields.Float(compute='_get_amount_total', string=u'合计金额', digits_compute=dp.get_precision('Accounting'))
+
+    @api.multi
     @inherits()
-    def approve_order(self, cr, uid, ids, context=None):
+    def approve_order(self):
         return True
 
+    @api.multi
     @inherits()
-    def cancel_approved_order(self, cr, uid, ids, context=None):
+    def cancel_approved_order(self):
         return True
 
+    @api.multi
     @inherits_after()
-    def unlink(self, cr, uid, ids, context=None):
-        return super(wh_internal, self).unlink(cr, uid, ids, context=context)
+    def unlink(self):
+        return super(wh_internal, self).unlink()
 
-    def get_line(self, cr, uid, ids, context=None):
-        for order in self.browse(cr, uid, ids, context=context):
-            yield order, order.line_out_ids
+    @api.one
+    @api.depends('line_out_ids.subtotal')
+    def _get_amount_total(self):
+        self.amount_total = sum(line.subtotal for line in self.line_out_ids)
 
-    def _get_amount_total(self, cr, uid, ids, field_name, arg, context=None):
-        res = {}
-        for order, lines in self.get_line(cr, uid, ids, context=context):
-            res.update({
-                order.id: sum(line.subtotal for line in lines),
-            })
-
-        return res
-
+    @api.multi
     @create_name
-    def create(self, cr, uid, vals, context=None):
-        return super(wh_internal, self).create(cr, uid, vals, context=context)
-
-    _columns = {
-        'move_id': fields.many2one('wh.move', u'移库单', required=True, index=True, ondelete='cascade'),
-        'amount_total': fields.function(_get_amount_total, type='float', string=u'合计金额', digits_compute=dp.get_precision('Accounting')),
-    }
+    def create(self):
+        return super(wh_internal, self).create()

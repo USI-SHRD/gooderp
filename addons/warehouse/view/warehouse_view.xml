@@ -40,13 +40,13 @@
             <field name='model'>wh.move.line</field>
             <field name='arch' type='xml'>
                 <tree string='库存调拨' editable='bottom'>
-                    <field name='goods_id' required='1' on_change='onchange_goods_by_out(goods_id, warehouse_id, lot_id, goods_qty)' />
+                    <field name='goods_id' required='1' />
                     <field name='using_batch' invisible='1' />
                     <field name='uom_id' required='1' />
                     <field name='lot_qty' invisible='1' />
-                    <field name='lot_id' attrs="{'readonly': [('using_batch', '=', False)], 'required': [('using_batch', '=', True)]}" domain="[('goods_id', '=', goods_id), ('state', '=', 'done'), ('lot', '!=', False), ('qty_remaining', '>', 0)]" context="{'lot': True}" on_change='onchange_lot_out(lot_id)' options="{'no_open': True, 'no_create': True}" />
-                    <field name='goods_qty' on_change='onchange_price_by_out(goods_id, warehouse_id, goods_qty)' sum='1' widget='float_limit' options="{'field': 'lot_qty'}" />
-                    <field name='warehouse_id' string='仓库' required='1' on_change='onchange_goods_by_out(goods_id, warehouse_id, lot_id, goods_qty)' />
+                    <field name='lot_id' attrs="{'readonly': [('using_batch', '=', False)], 'required': [('using_batch', '=', True)]}" domain="[('goods_id', '=', goods_id), ('state', '=', 'done'), ('lot', '!=', False), ('qty_remaining', '>', 0)]" context="{'lot': True}" options="{'no_open': True, 'no_create': True}" />
+                    <field name='goods_qty' />
+                    <field name='warehouse_id' string='仓库' required='1' />
 
                     <field name='warehouse_dest_id' invisible='1' />
                     <field name='price' string='出库单位成本' readonly='1' />
@@ -61,17 +61,17 @@
             <field name='model'>wh.move.line</field>
             <field name='arch' type='xml'>
                 <tree string='库存调拨' editable='bottom'>
-                    <field name='goods_id' required='1' on_change='onchange_goods_by_in(goods_id, goods_qty)' />
+                    <field name='goods_id' required='1' />
                     <field name='uom_id' required='1' />
                     <field name='using_batch' invisible='1' />
                     <field name='force_batch_one' invisible='1' />
 
                     <field name='lot' attrs="{'readonly': [('using_batch', '=', False)], 'required': [('using_batch', '=', True)]}" />
-                    <field name='goods_qty' attrs="{'readonly': [('force_batch_one', '=', True)]}" on_change='onchange_price_by_in(goods_qty, price)' sum='1' />
+                    <field name='goods_qty' attrs="{'readonly': [('force_batch_one', '=', True)]}" sum='1' />
 
                     <field name='warehouse_id' invisible='1' />
                     <field name='warehouse_dest_id' string='仓库' required='1' />
-                    <field name='price' string='入库单价' on_change='onchange_price_by_in(goods_qty, price)' />
+                    <field name='price' string='入库单价' />
                     <field name='subtotal' string='入库金额' sum='1' readonly='1' />
                     <field name='note' string='备注' />
                 </tree>
@@ -83,15 +83,15 @@
             <field name='model'>wh.move.line</field>
             <field name='arch' type='xml'>
                 <tree string='库存调拨' editable='bottom'>
-                    <field name='goods_id' required='1' on_change='onchange_goods_by_out(goods_id, warehouse_id, lot_id, goods_qty, True)' />
+                    <field name='goods_id' required='1' />
                     <field name='using_batch' invisible='1' />
                     <field name='uom_id' required='1' />
-                    <field name='lot_id' attrs="{'readonly': [('using_batch', '=', False)], 'required': [('using_batch', '=', True)]}" domain="[('goods_id', '=', goods_id), ('state', '=', 'done'), ('lot', '!=', False), ('qty_remaining', '>', 0)]" context="{'lot': True}" on_change='onchange_lot_out(lot_id)' options="{'no_open': True, 'no_create': True}" />
+                    <field name='lot_id' attrs="{'readonly': [('using_batch', '=', False)], 'required': [('using_batch', '=', True)]}" domain="[('goods_id', '=', goods_id), ('state', '=', 'done'), ('lot', '!=', False), ('qty_remaining', '>', 0)]" context="{'lot': True}" options="{'no_open': True, 'no_create': True}" />
 
                     <field name='lot_qty' invisible='1' />
                     <field name='goods_qty' sum='1' widget='float_limit' options="{'field': 'lot_qty'}" />
 
-                    <field name='warehouse_id' required='1' on_change='onchange_goods_by_out(goods_id, warehouse_id, lot_id, goods_qty, True)' />
+                    <field name='warehouse_id' required='1' />
                     <field name='warehouse_dest_id' required='1' />
                     <field name='note' string='备注' />
                 </tree>

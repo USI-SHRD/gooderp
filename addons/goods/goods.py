@@ -5,9 +5,11 @@ from openerp import models, fields, api
 
 class goods(models.Model):
     _inherit = 'goods'
+
     using_batch = fields.Boolean(u'批次管理')
     force_batch_one = fields.Boolean(u'每批次数量为1')
-    attribute_ids = fields.One2many('attribute','goods_id',string=u'属性')
+    attribute_ids = fields.One2many('attribute', 'goods_id', string=u'属性')
+
 
 class attribute(models.Model):
     _name = 'attribute'
@@ -17,9 +19,10 @@ class attribute(models.Model):
     def _compute_name(self):
         self.name = ' '.join([value.value_id.name for value in self.value_ids])
 
-    name = fields.Char(u'名称',compute='_compute_name',store=True)
-    goods_id = fields.Many2one('goods',u'商品')
-    value_ids = fields.One2many('attribute.value','attribute_id',string=u'属性')
+    name = fields.Char(u'名称', compute='_compute_name', store=True)
+    goods_id = fields.Many2one('goods', u'商品')
+    value_ids = fields.One2many('attribute.value', 'attribute_id', string=u'属性')
+
 
 class attribute_value(models.Model):
     _name = 'attribute.value'

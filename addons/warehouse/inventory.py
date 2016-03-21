@@ -38,6 +38,7 @@ class wh_inventory(models.Model):
         self.state = 'query'
 
     @api.model
+    @create_name
     def create(self, vals):
         return super(wh_inventory, self).create(vals)
 
@@ -108,7 +109,6 @@ class wh_inventory(models.Model):
         for line in out_line:
             out_vals['line_out_ids'].append([0, False, line.get_move_line(wh_type='out')])
 
-        print '------------out----------', out_vals
         out_id = self.env['wh.out'].create(out_vals)
         inventory.out_id = out_id
 
@@ -122,7 +122,6 @@ class wh_inventory(models.Model):
         for line in in_line:
             in_vals['line_in_ids'].append([0, False, line.get_move_line(wh_type='in')])
 
-        print '------------in----------', in_vals
         in_id = self.env['wh.in'].create(in_vals)
         inventory.in_id = in_id
 
@@ -235,6 +234,7 @@ class wh_inventory_line(models.Model):
     inventory_qty = fields.Float(u'盘点库存', digits_compute=dp.get_precision('Goods Quantity'))
     difference_qty = fields.Float(u'盘盈盘亏', digits_compute=dp.get_precision('Goods Quantity'))
 
+    @api.one
     @api.onchange('real_qty', 'inventory_qty')
     def onchange_qty(self):
         self.difference_qty = self.inventory_qty - self.real_qty
@@ -265,7 +265,7 @@ class wh_inventory_line(models.Model):
 class wh_out(models.Model):
     _inherit = 'wh.out'
 
-    inventory_ids = fields.One2many('wh.inventory', 'out_id', u'盘点单'),
+    inventory_ids = fields.One2many('wh.inventory', 'out_id', u'盘点单')
 
     @api.multi
     def approve_order(self):
@@ -280,10 +280,9 @@ class wh_out(models.Model):
 class wh_in(models.Model):
     _inherit = 'wh.in'
 
-    inventory_ids = fields.One2many('wh.inventory', 'in_id', u'盘点单'),
+    inventory_ids = fields.One2many('wh.inventory', 'in_id', u'盘点单')
 
     @api.multi
-    @api.v8
     def approve_order(self):
         res = super(wh_in, self).approve_order()
 

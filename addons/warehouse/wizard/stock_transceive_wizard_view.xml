@@ -10,8 +10,8 @@
                         <group>
                             <label for="date_start" string="单据期间" class='oe_inline' />
                             <div>
-                                <field name="date_start" class="oe_inline" nolabel='1' required='1' on_change='onchange_date(date_start, date_end)' /> - 
-                                <field name="date_end" class="oe_inline" nolabel='1' required='1' on_change='onchange_date(date_start, date_end)' />
+                                <field name="date_start" class="oe_inline" nolabel='1' required='1' /> - 
+                                <field name="date_end" class="oe_inline" nolabel='1' required='1' />
                             </div>
                             <field name='goods' />
                         </group>
