@@ -32,7 +32,9 @@ class wh_move(models.Model):
 
     @api.multi
     def prev_approve_order(self):
-        pass
+        for order in self:
+            if not order.line_out_ids and not order.line_in_ids:
+                raise osv.except_osv(u'错误', u'单据的明细行不可以为空')
 
     @api.multi
     def approve_order(self):

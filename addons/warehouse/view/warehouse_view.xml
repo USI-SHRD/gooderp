@@ -63,8 +63,8 @@
                 <tree string='库存调拨' editable='bottom'>
                     <field name='goods_id' required='1' />
                     <field name='uom_id' required='1' />
-                    <field name='using_batch' invisible='1' />
-                    <field name='force_batch_one' invisible='1' />
+                    <field name='using_batch' invisible='0' />
+                    <field name='force_batch_one' invisible='0' />
 
                     <field name='lot' attrs="{'readonly': [('using_batch', '=', False)], 'required': [('using_batch', '=', True)]}" />
                     <field name='goods_qty' attrs="{'readonly': [('force_batch_one', '=', True)]}" sum='1' />
@@ -89,6 +89,7 @@
                     <field name='lot_id' attrs="{'readonly': [('using_batch', '=', False)], 'required': [('using_batch', '=', True)]}" domain="[('goods_id', '=', goods_id), ('state', '=', 'done'), ('lot', '!=', False), ('qty_remaining', '>', 0)]" context="{'lot': True}" options="{'no_open': True, 'no_create': True}" />
 
                     <field name='lot_qty' invisible='1' />
+                    <!-- 新api似乎有bug -->
                     <field name='goods_qty' sum='1' widget='float_limit' options="{'field': 'lot_qty'}" />
 
                     <field name='warehouse_id' required='1' />
@@ -129,6 +130,7 @@
                                 'tree_view_ref': 'warehouse.wh_move_line_out_tree',
                                 'warehouse_dest_type': 'others',
                                 'lot': True,
+                                'get_cost': True,
                             }" attrs="{'readonly': [('state', '!=', 'draft')]}" />
                         </group>
 

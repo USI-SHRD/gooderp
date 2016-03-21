@@ -37,15 +37,17 @@ class goods(models.Model):
         return 1
 
     @api.multi
-    def get_suggested_cost_by_warehouse(self, warehouse, qty, context=None):
-        records, subtotal = self.get_matching_records(warehouse, qty, ignore_stock=True, context=context)
+    def get_suggested_cost_by_warehouse(self, warehouse, qty):
+        records, subtotal = self.get_matching_records(warehouse, qty, ignore_stock=True)
 
         matching_qty = sum(record.get('qty') for record in records)
         if matching_qty:
-            return subtotal, safe_division(subtotal, matching_qty)
+            cost = safe_division(subtotal, matching_qty)
+            if matching_qty >= qty:
+                return subtotal, cost
         else:
             cost = self.get_cost()
-            return cost * qty, cost
+        return cost * qty, cost
 
     @api.multi
     def is_using_matching(self):
@@ -71,6 +73,7 @@ class goods(models.Model):
 
             # TODO @zzx需要在大量数据的情况下评估一下速度
             lines = self.env['wh.move.line'].search(domain, order='date, id')
+
             qty_to_go, subtotal = qty, 0
             for line in lines:
                 if qty_to_go <= 0:

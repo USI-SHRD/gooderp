@@ -35,27 +35,30 @@ class wh_move_line(models.Model):
 
     @api.multi
     def copy_data(self):
-        res = super(wh_move_line, self).copy_data()
+        # TODO 奇怪，返回值似乎被wrapper了
+        res = super(wh_move_line, self).copy_data()[0]
 
         if res.get('warehouse_id') and res.get('warehouse_dest_id'):
-            vals = self.pool.get('warehouse').read([res.get('warehouse_id'),
-                res.get('warehouse_dest_id')], ['type'])
+            warehouses = self.env['warehouse'].browse([res.get('warehouse_id'),
+                res.get('warehouse_dest_id')])
 
-            if vals[0].get('type') == 'stock' and vals[1].get('type') != 'stock':
+            if warehouses[0].type == 'stock' and warehouses[1].type != 'stock':
                 res.update({'price': 0, 'subtotal': 0})
 
         return res
 
     # 这样的function字段的使用方式需要验证一下
     @api.one
-    @api.depends('goods_qty', 'warehouse_id', 'matching_in_ids', 'matching_out_ids')
+    @api.depends('goods_qty', 'matching_in_ids.qty')
     def _get_qty_remaining(self):
-        self.qty_remaining = self.goods_qty - sum(match.qty for match in
-            self.env['wh.move.matching'].search([('line_in_id', '=', self.id)]))
+        self.qty_remaining = self.goods_qty - sum(match.qty for match in self.matching_in_ids)
 
     @api.multi
     def get_matching_records_by_lot(self):
         for line in self:
+            if line.goods_qty > line.lot_id.qty_remaining:
+                raise osv.except_osv(u'错误', u'产品%s的库存数量不够本次出库行为' % (self.goods_id.name, ))
+
             return [{'line_in_id': line.lot_id.id, 'qty': line.goods_qty}], \
                 line.lot_id.price * line.goods_qty
 
@@ -73,7 +76,7 @@ class wh_move_line(models.Model):
                             line.id, matching.get('qty'))
                 else:
                     matching_records, subtotal = line.goods_id.get_matching_records(
-                        line.warehouse_id.id, line.goods_qty)
+                        line.warehouse_id, line.goods_qty)
 
                     for matching in matching_records:
                         matching_obj.create_matching(matching.get('line_in_id'),

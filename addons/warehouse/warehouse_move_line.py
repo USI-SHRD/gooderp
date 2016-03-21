@@ -25,12 +25,12 @@ class wh_move_line(models.Model):
     @api.model
     def _get_default_warehouse(self):
         if self.env.context.get('warehouse_type'):
-            return self.env['warehouse'].get_warehouse_by_type(self.envcontext.get('warehouse_type'))
+            return self.env['warehouse'].get_warehouse_by_type(self.env.context.get('warehouse_type'))
 
         return False
 
     @api.model
-    def _get_default_warehouse_dest(self, cr, uid, context=None):
+    def _get_default_warehouse_dest(self):
         if self.env.context.get('warehouse_dest_type'):
             return self.env['warehouse'].get_warehouse_by_type(self.env.context.get('warehouse_dest_type'))
 
@@ -86,7 +86,7 @@ class wh_move_line(models.Model):
         return res
 
     @api.one
-    def check_availability(self, cr, uid, ids, context=None):
+    def check_availability(self):
         if self.warehouse_dest_id == self.warehouse_id:
             raise osv.except_osv(u'错误', u'调出仓库不可以和调入仓库一样')
 
@@ -146,7 +146,7 @@ class wh_move_line(models.Model):
 
     @api.one
     def compute_suggested_cost(self):
-        if self.type == 'out' and self.goods_id and self.warehouse_id and self.goods_qty:
+        if self.env.context.get('get_cost') and self.goods_id and self.warehouse_id and self.goods_qty:
             subtotal, price = self.goods_id.get_suggested_cost_by_warehouse(self.warehouse_id, self.goods_qty)
 
             self.price = price
@@ -157,6 +157,9 @@ class wh_move_line(models.Model):
     def onchange_goods_id(self):
         if self.goods_id and self.goods_id.using_batch and self.goods_id.force_batch_one:
             self.goods_qty = 1
+
+        if self.goods_id:
+            self.uom_id = self.goods_id.uom_id
 
         self.compute_suggested_cost()
         self.compute_lot_compatible()

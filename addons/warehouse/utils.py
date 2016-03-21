@@ -63,7 +63,7 @@ def execute_inherits_func(self, method_name, args, kwargs):
         raise ValueError(u'错误，当前对象不存在多重继承，或者存在多个多重继承')
 
     model, field = self._inherits.items()[0]
-    values = self.read([field], context=kwargs.get('context', {}))
+    values = self.read([field])
     field_ids = map(lambda value: value[field][0], values)
 
     models = self.env[model].browse(field_ids)

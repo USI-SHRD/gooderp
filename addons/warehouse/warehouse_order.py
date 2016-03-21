@@ -44,8 +44,9 @@ class wh_out(models.Model):
 
     @api.model
     @create_name
-    def create(self, cr, uid, vals, context=None):
-        return super(wh_out, self).create(cr, uid, vals, context=context)
+    def create(self, vals):
+        print vals
+        return super(wh_out, self).create(vals)
 
 
 class wh_in(models.Model):
