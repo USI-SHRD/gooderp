@@ -1,12 +1,16 @@
 # -*- coding: utf-8 -*-
 
 from openerp.osv import osv
-from openerp.osv import fields
+# from openerp.osv import fields
 from utils import create_name, safe_division
 import openerp.addons.decimal_precision as dp
 
+from openerp import models
+from openerp import fields
+from openerp import api
 
-class wh_inventory(osv.osv):
+
+class wh_inventory(models.Model):
     _name = 'wh.inventory'
 
     INVENTORY_STATE = [
@@ -16,25 +20,41 @@ class wh_inventory(osv.osv):
         ('done', u'完成'),
     ]
 
-    def requery_inventory(self, cr, uid, ids, context=None):
-        self.delete_confirmed_wh(cr, uid, ids, context=context)
-        return self.write(cr, uid, ids, {'state': 'query'}, context=context)
+    date = fields.Date(u'日期', default=fields.Date.context_today)
+    name = fields.Char(u'名称', copy=False, default='/')
+    warehouse_id = fields.Many2one('warehouse', u'仓库')
+    goods = fields.Char(u'产品')
+    zero_inventory = fields.Boolean(u'零库存')
+    serial_numbe = fields.Boolean(u'序列号产品')
+    out_id = fields.Many2one('wh.out', u'盘亏单据', copy=False)
+    in_id = fields.Many2one('wh.in', u'盘盈单据', copy=False)
+    state = fields.Selection(INVENTORY_STATE, u'状态', copy=False, default='draft')
+    line_ids = fields.One2many('wh.inventory.line', 'inventory_id', u'明细', copy=False)
+    note = fields.Text(u'备注')
 
+    @api.multi
+    def requery_inventory(self):
+        self.delete_confirmed_wh()
+        self.state = 'query'
+
+    @api.model
     @create_name
-    def create(self, cr, uid, vals, context=None):
-        return super(wh_inventory, self).create(cr, uid, vals, context=context)
+    def create(self, vals):
+        return super(wh_inventory, self).create(vals)
 
-    def unlink(self, cr, uid, ids, context=None):
-        for inventory in self.browse(cr, uid, ids, context=context):
+    @api.multi
+    def unlink(self):
+        for inventory in self:
             if inventory.state == 'done':
                 raise osv.except_osv(u'错误', u'不可以删除一个完成的单据')
 
             inventory.delete_confirmed_wh()
 
-        return super(wh_inventory, self).unlink(cr, uid, ids, context=context)
+        return super(wh_inventory, self).unlink()
 
-    def delete_confirmed_wh(self, cr, uid, ids, context=None):
-        for inventory in self.browse(cr, uid, ids, context=context):
+    @api.multi
+    def delete_confirmed_wh(self):
+        for inventory in self:
             if inventory.state == 'confirmed':
                 if (inventory.out_id and inventory.out_id.state == 'done') or (inventory.in_id and inventory.in_id.state == 'done'):
                     raise osv.except_osv(u'错误', u'请先反审核掉相关的盘盈盘亏单据')
@@ -44,17 +64,20 @@ class wh_inventory(osv.osv):
 
         return True
 
-    def check_done(self, cr, uid, ids, context=None):
-        for inventory in self.browse(cr, uid, ids, context=context):
+    @api.multi
+    def check_done(self):
+        for inventory in self:
             if inventory.state == 'confirmed' and \
                 (not inventory.out_id or inventory.out_id.state == 'done') and \
                     (not inventory.in_id or inventory.in_id.state == 'done'):
-                return inventory.write({'state': 'done'})
+                self.state = 'done'
+                return True
 
         return False
 
-    def open_out(self, cr, uid, ids, context=None):
-        for inventory in self.browse(cr, uid, ids, context=context):
+    @api.multi
+    def open_out(self):
+        for inventory in self:
             return {
                 'type': 'ir.actions.act_window',
                 'res_model': 'wh.out',
@@ -62,8 +85,9 @@ class wh_inventory(osv.osv):
                 'res_id': inventory.out_id.id,
             }
 
-    def open_in(self, cr, uid, ids, context=None):
-        for inventory in self.browse(cr, uid, ids, context=context):
+    @api.multi
+    def open_in(self):
+        for inventory in self:
             return {
                 'type': 'ir.actions.act_window',
                 'res_model': 'wh.in',
@@ -71,13 +95,12 @@ class wh_inventory(osv.osv):
                 'res_id': inventory.in_id.id,
             }
 
-    def delete_line(self, cr, uid, ids, context=None):
-        for inventory in self.browse(cr, uid, ids, context=context):
-            inventory.line_ids.unlink(context=context)
+    @api.multi
+    def delete_line(self):
+        self.line_ids.unlink()
 
-        return True
-
-    def create_losses_out(self, cr, uid, inventory, out_line, context=None):
+    @api.model
+    def create_losses_out(self, inventory, out_line):
         out_vals = {
             'type': 'losses',
             'line_out_ids': [],
@@ -86,10 +109,11 @@ class wh_inventory(osv.osv):
         for line in out_line:
             out_vals['line_out_ids'].append([0, False, line.get_move_line(wh_type='out')])
 
-        out_id = self.pool.get('wh.out').create(cr, uid, out_vals, context=context)
-        inventory.write({'out_id': out_id})
+        out_id = self.env['wh.out'].create(out_vals)
+        inventory.out_id = out_id
 
-    def create_overage_in(self, cr, uid, inventory, in_line, context=None):
+    @api.model
+    def create_overage_in(self, inventory, in_line):
         in_vals = {
             'type': 'overage',
             'line_in_ids': [],
@@ -98,11 +122,12 @@ class wh_inventory(osv.osv):
         for line in in_line:
             in_vals['line_in_ids'].append([0, False, line.get_move_line(wh_type='in')])
 
-        in_id = self.pool.get('wh.in').create(cr, uid, in_vals, context=context)
-        inventory.write({'in_id': in_id})
+        in_id = self.env['wh.in'].create(in_vals)
+        inventory.in_id = in_id
 
-    def generate_inventory(self, cr, uid, ids, context=None):
-        for inventory in self.browse(cr, uid, ids, context=context):
+    @api.multi
+    def generate_inventory(self):
+        for inventory in self:
             out_line, in_line = [], []
             for line in (line for line in inventory.line_ids if line.difference_qty):
                 if line.difference_qty < 0:
@@ -111,65 +136,61 @@ class wh_inventory(osv.osv):
                     in_line.append(line)
 
             if out_line:
-                self.create_losses_out(cr, uid, inventory, out_line, context=context)
+                self.create_losses_out(inventory, out_line)
 
             if in_line:
-                self.create_overage_in(cr, uid, inventory, in_line, context=context)
+                self.create_overage_in(inventory, in_line)
 
             if out_line or in_line:
-                inventory.write({'state': 'confirmed'})
+                inventory.state = 'confirmed'
 
         return True
 
-    def get_line_detail(self, cr, uid, ids, context=None):
-        if isinstance(ids, (list, tuple)):
-            ids = ids[0]
+    @api.multi
+    def get_line_detail(self):
+        for inventory in self:
+            sql_text = '''
+                SELECT wh.id as warehouse_id,
+                       goods.id as goods_id,
+                       uom.id as uom_id,
+                       sum(line.qty_remaining) as qty
 
-        inventory = self.browse(cr, uid, ids, context=context)
-        sql_text = '''
-            SELECT wh.id as warehouse_id,
-                   goods.id as goods_id,
-                   uom.id as uom_id,
-                   sum(line.qty_remaining) as qty
+                FROM wh_move_line line
+                LEFT JOIN goods goods ON line.goods_id = goods.id
+                    LEFT JOIN uom uom ON goods.uom_id = uom.id
+                LEFT JOIN warehouse wh ON line.warehouse_dest_id = wh.id
 
-            FROM wh_move_line line
-            LEFT JOIN goods goods ON line.goods_id = goods.id
-                LEFT JOIN uom uom ON goods.uom_id = uom.id
-            LEFT JOIN warehouse wh ON line.warehouse_dest_id = wh.id
+                WHERE line.qty_remaining > 0
+                  AND wh.type = 'stock'
+                  AND line.state = 'done'
+                  %s
 
-            WHERE line.qty_remaining > 0
-              AND wh.type = 'stock'
-              AND line.state = 'done'
-              %s
+                GROUP BY wh.id, goods.id, uom.id
+            '''
 
-            GROUP BY wh.id, goods.id, uom.id
-        '''
+            extra_text = ''
+            # TODO @zzx 可能需要添加一种全部仓库的判断
+            if inventory.warehouse_id:
+                extra_text += ' AND wh.id = %s' % inventory.warehouse_id.id
 
-        extra_text = ''
-        # TODO @zzx 可能需要添加一种全部仓库的判断
-        if inventory.warehouse_id:
-            extra_text += ' AND wh.id = %s' % inventory.warehouse_id.id
+            if inventory.goods:
+                extra_text += " AND goods.name ILIKE '%%%s%%' " % inventory.goods
 
-        if inventory.goods:
-            extra_text += " AND goods.name ILIKE '%%%s%%' " % inventory.goods
+            inventory.env.cr.execute(sql_text % extra_text)
+            return inventory.env.cr.dictfetchall()
 
-        cr.execute(sql_text % extra_text)
-        return cr.dictfetchall()
-
-    def get_zero_inventory(self, cr, uid, ids, goods_ids, context=None):
-        goods_obj = self.pool.get('goods')
-        for inventory in self.browse(cr, uid, ids, context=context):
+    @api.multi
+    def get_zero_inventory(self, exist_goods_ids):
+        for inventory in self:
             domain = inventory.goods and [('name', 'ilike', '%%%s%%' % inventory.goods)] or []
-            zero_goods_ids = goods_obj.search(cr, uid, domain, context=context)
+            zero_goods = self.env['goods'].search(domain)
 
             res = []
-            temp_warehouse_ids = self.pool.get('warehouse').search(cr, uid,
-                [('type', '=', 'stock')], limit=1, context=context)
-            for goods in goods_obj.browse(cr, uid, [goods_id for goods_id in
-                    zero_goods_ids if goods_id not in goods_ids], context=context):
+            temp_warehouse = self.env['warehouse'].search([('type', '=', 'stock')], limit=1)
+            for goods in zero_goods.filtered(lambda goods: goods.id not in exist_goods_ids):
                 res.append({
                         # 'warehouse_id': goods.main_warehouse_id.id, TODO
-                        'warehouse_id': temp_warehouse_ids[0],
+                        'warehouse_id': temp_warehouse[0].id,
                         'goods_id': goods.id,
                         'uom_id': goods.uom_id.id,
                         'qty': 0,
@@ -177,118 +198,95 @@ class wh_inventory(osv.osv):
 
             return res
 
-    def query_inventory(self, cr, uid, ids, context=None):
-        line_obj = self.pool.get('wh.inventory.line')
-        for inventory in self.browse(cr, uid, ids, context=context):
-            inventory.delete_line(context=context)
-            line_ids = inventory.get_line_detail(context=context)
+    @api.multi
+    def query_inventory(self):
+        line_obj = self.env['wh.inventory.line']
+        for inventory in self:
+            inventory.delete_line()
+            line_ids = inventory.get_line_detail()
 
             if inventory.zero_inventory:
                 line_ids.extend(inventory.get_zero_inventory([line.get('goods_id') for line in line_ids]))
 
             for line in line_ids:
-                line_obj.create(cr, uid, {
+                line_obj.create({
                         'inventory_id': inventory.id,
                         'warehouse_id': line.get('warehouse_id'),
                         'goods_id': line.get('goods_id'),
                         'uom_id': line.get('uom_id'),
                         'real_qty': line.get('qty'),
-                    }, context=context)
+                    })
 
             if line_ids:
-                inventory.write({'state': 'query'})
+                inventory.state = 'query'
 
         return True
 
-    _columns = {
-        'date': fields.date(u'日期'),
-        'name': fields.char(u'名称', copy=False),
-        'warehouse_id': fields.many2one('warehouse', u'仓库'),
-        'goods': fields.char(u'产品'),
-        'zero_inventory': fields.boolean(u'零库存'),
-        'serial_numbe': fields.boolean(u'序列号产品'),
-        'out_id': fields.many2one('wh.out', u'盘亏单据', copy=False),
-        'in_id': fields.many2one('wh.in', u'盘盈单据', copy=False),
-        'state': fields.selection(INVENTORY_STATE, u'状态', copy=False),
-        'line_ids': fields.one2many('wh.inventory.line', 'inventory_id', u'明细', copy=False),
-        'note': fields.text(u'备注'),
-    }
 
-    _defaults = {
-        'date': fields.date.context_today,
-        'state': 'draft',
-        'name': '/',
-    }
-
-
-class wh_inventory_line(osv.osv):
+class wh_inventory_line(models.Model):
     _name = 'wh.inventory.line'
 
-    def onchange_qty(self, cr, uid, ids, real_qty, inventory_qty, context=None):
-        return {'value': {'difference_qty': inventory_qty - real_qty}}
+    inventory_id = fields.Many2one('wh.inventory', u'盘点', ondelete='cascade')
+    warehouse_id = fields.Many2one('warehouse', u'仓库')
+    goods_id = fields.Many2one('goods', u'产品')
+    uom_id = fields.Many2one('uom', u'单位')
+    real_qty = fields.Float(u'系统库存', digits_compute=dp.get_precision('Goods Quantity'))
+    inventory_qty = fields.Float(u'盘点库存', digits_compute=dp.get_precision('Goods Quantity'))
+    difference_qty = fields.Float(u'盘盈盘亏', digits_compute=dp.get_precision('Goods Quantity'))
 
-    def get_move_line(self, cr, uid, ids, wh_type='in', context=None):
-        if isinstance(ids, (list, tuple)):
-            ids = ids[0]
+    @api.one
+    @api.onchange('real_qty', 'inventory_qty')
+    def onchange_qty(self):
+        self.difference_qty = self.inventory_qty - self.real_qty
 
-        line = self.browse(cr, uid, ids, context=context)
+    @api.multi
+    def get_move_line(self, wh_type='in', context=None):
+        inventory_warehouse = self.env['warehouse'].get_warehouse_by_type('inventory')
+        for inventory in self:
+            res = {
+                'warehouse_id': wh_type == 'out' and inventory.warehouse_id.id or inventory_warehouse,
+                'warehouse_dest_id': wh_type == 'in' and inventory.warehouse_id.id or inventory_warehouse,
+                'goods_id': inventory.goods_id.id,
+                'uom_id': inventory.uom_id.id,
+                'goods_qty': abs(inventory.difference_qty)
+            }
 
-        inventory_warehouse = self.pool.get('warehouse').get_warehouse_by_type(cr, uid, 'inventory')
+            if wh_type == 'in':
+                subtotal, matching_qty = inventory.goods_id.get_suggested_cost_by_warehouse(
+                    inventory.warehouse_id, abs(inventory.difference_qty))
+                res.update({
+                        'price': safe_division(subtotal, matching_qty),
+                        'subtotal': subtotal,
+                    })
 
-        res = {
-            'warehouse_id': wh_type == 'out' and line.warehouse_id.id or inventory_warehouse,
-            'warehouse_dest_id': wh_type == 'in' and line.warehouse_id.id or inventory_warehouse,
-            'goods_id': line.goods_id.id,
-            'uom_id': line.uom_id.id,
-            'goods_qty': abs(line.difference_qty)
-        }
-
-        if wh_type == 'in':
-            subtotal, matching_qty = line.goods_id.get_suggested_cost_by_warehouse(
-                line.warehouse_id.id, abs(line.difference_qty))
-            res.update({
-                    'price': safe_division(subtotal, matching_qty),
-                    'subtotal': subtotal,
-                })
-
-        return res
-
-    _columns = {
-        'inventory_id': fields.many2one('wh.inventory', u'盘点', ondelete='cascade'),
-        'warehouse_id': fields.many2one('warehouse', u'仓库'),
-        'goods_id': fields.many2one('goods', u'产品'),
-        'uom_id': fields.many2one('uom', u'单位'),
-        'real_qty': fields.float(u'系统库存', digits_compute=dp.get_precision('Goods Quantity')),
-        'inventory_qty': fields.float(u'盘点库存', digits_compute=dp.get_precision('Goods Quantity')),
-        'difference_qty': fields.float(u'盘盈盘亏', digits_compute=dp.get_precision('Goods Quantity')),
-    }
+            return res
 
 
-class wh_out(osv.osv):
+class wh_out(models.Model):
     _inherit = 'wh.out'
 
-    _columns = {
-        'inventory_ids': fields.one2many('wh.inventory', 'out_id', u'盘点单'),
-    }
+    inventory_ids = fields.One2many('wh.inventory', 'out_id', u'盘点单')
 
-    def approve_order(self, cr, uid, ids, context=None):
-        res = super(wh_out, self).approve_order(cr, uid, ids, context=context)
-        for move in self.browse(cr, uid, ids, context=context):
-            move.inventory_ids.check_done()
+    @api.multi
+    def approve_order(self):
+        res = super(wh_out, self).approve_order()
+
+        # 迷之报错（可能新旧新API继承旧式API造成）
+        # self.inventory_ids.check_done()
 
         return res
 
 
-class wh_in(osv.osv):
+class wh_in(models.Model):
     _inherit = 'wh.in'
 
-    _columns = {
-        'inventory_ids': fields.one2many('wh.inventory', 'in_id', u'盘点单'),
-    }
+    inventory_ids = fields.One2many('wh.inventory', 'in_id', u'盘点单')
 
-    def approve_order(self, cr, uid, ids, context=None):
-        res = super(wh_in, self).approve_order(cr, uid, ids, context=context)
-        for move in self.browse(cr, uid, ids, context=context):
-            move.inventory_ids.check_done()
+    @api.multi
+    def approve_order(self):
+        res = super(wh_in, self).approve_order()
+
+        # 迷之报错（可能新旧新API继承旧式API造成）
+        # self.inventory_ids.check_done()
 
         return res

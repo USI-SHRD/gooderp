@@ -3,78 +3,79 @@
 from openerp.osv import osv
 from utils import safe_division
 
+from openerp import models
+from openerp import api
 
-class goods(osv.osv):
+
+class goods(models.Model):
     _inherit = 'goods'
 
     # 使用SQL来取得指定产品情况下的库存数量
-    def get_stock_qty(self, cr, uid, ids, context=None):
-        if isinstance(ids, (long, int)):
-            ids = [ids]
+    @api.multi
+    def get_stock_qty(self):
+        for goods in self:
+            self.env.cr.execute('''
+                SELECT sum(line.qty_remaining) as qty,
+                       sum(line.qty_remaining * (line.subtotal / line.goods_qty)) as subtotal,
+                       wh.name as warehouse
+                FROM wh_move_line line
+                LEFT JOIN warehouse wh ON line.warehouse_dest_id = wh.id
 
-        cr.execute('''
-            SELECT sum(line.qty_remaining) as qty,
-                   sum(line.qty_remaining * (line.subtotal / line.goods_qty)) as subtotal,
-                   wh.name as warehouse
-            FROM wh_move_line line
-            LEFT JOIN warehouse wh ON line.warehouse_dest_id = wh.id
+                WHERE line.qty_remaining > 0
+                  AND wh.type = 'stock'
+                  AND line.state = 'done'
+                  AND line.goods_id = %s
 
-            WHERE line.qty_remaining > 0
-              AND wh.type = 'stock'
-              AND line.state = 'done'
-              AND line.goods_id = %s
+                GROUP BY wh.name
+            ''' % (goods.id, ))
 
-            GROUP BY wh.name
-        ''' % (ids[0], ))
+            return self.env.cr.dictfetchall()
 
-        return cr.dictfetchall()
-
-    def get_cost(self, cr, uid, goods_id, context=None):
-        if isinstance(goods_id, (list, tuple)):
-            goods_id = goods_id[0]
-
-        # goods = self.browse(cr, uid, goods_id, context=context)
+    @api.multi
+    def get_cost(self):
         # TODO 产品上需要一个字段来记录成本
         return 1
 
-    def get_suggested_cost_by_warehouse(self, cr, uid, ids, warehouse_id, qty, context=None):
-        if isinstance(ids, (long, int)):
-            ids = [ids]
-
-        records, subtotal = self.get_matching_records(cr, uid,
-            ids, warehouse_id, qty, ignore_stock=True, context=context)
+    @api.multi
+    def get_suggested_cost_by_warehouse(self, warehouse, qty):
+        records, subtotal = self.get_matching_records(warehouse, qty, ignore_stock=True)
 
         matching_qty = sum(record.get('qty') for record in records)
         if matching_qty:
-            return subtotal, safe_division(subtotal, matching_qty)
+            cost = safe_division(subtotal, matching_qty)
+            if matching_qty >= qty:
+                return subtotal, cost
         else:
-            cost = self.get_cost(cr, uid, ids[0], context=context)
-            return cost * qty, cost
+            cost = self.get_cost()
+        return cost * qty, cost
 
-    def is_using_matching(self, cr, uid, ids, context=None):
+    @api.multi
+    def is_using_matching(self):
         return True
 
-    def is_using_batch(self, cr, uid, ids, context=None):
-        for goods in self.browse(cr, uid, ids, context=context):
+    @api.multi
+    def is_using_batch(self):
+        for goods in self:
             return goods.using_batch
 
         return False
 
-    def get_matching_records(self, cr, uid, ids, warehouse_id, qty, ignore_stock=False, context=None):
-        line_obj = self.pool.get('wh.move.line')
+    @api.multi
+    def get_matching_records(self, warehouse, qty, ignore_stock=False):
         matching_records = []
-        for goods in self.browse(cr, uid, ids, context=context):
+        for goods in self:
             domain = [
                 ('qty_remaining', '>', 0),
                 ('state', '=', 'done'),
-                ('warehouse_dest_id', '=', warehouse_id),
+                ('warehouse_dest_id', '=', warehouse.id),
                 ('goods_id', '=', goods.id)
             ]
 
             # TODO @zzx需要在大量数据的情况下评估一下速度
-            line_ids = line_obj.search(cr, uid, domain, order='date, id', context=context)
+            lines = self.env['wh.move.line'].search(domain, order='date, id')
+
             qty_to_go, subtotal = qty, 0
-            for line in line_obj.browse(cr, uid, line_ids, context=context):
+            for line in lines:
                 if qty_to_go <= 0:
                     break
 

@@ -1,23 +1,20 @@
 # -*- coding: utf-8 -*-
 
 from openerp import tools
-from openerp.osv import fields
-from openerp.osv import osv
 import openerp.addons.decimal_precision as dp
+from openerp import models, fields
 
 
-class report_stock_balance(osv.osv):
+class report_stock_balance(models.Model):
     _name = 'report.stock.balance'
     _auto = False
 
-    _columns = {
-        'goods': fields.char(u'产品'),
-        'uom': fields.char(u'单位'),
-        'lot': fields.char(u'批次'),
-        'warehouse': fields.char(u'仓库'),
-        'goods_qty': fields.float('数量', digits_compute=dp.get_precision('Goods Quantity')),
-        'cost': fields.float(u'成本', digits_compute=dp.get_precision('Accounting')),
-    }
+    goods = fields.Char(u'产品')
+    uom = fields.Char(u'单位')
+    lot = fields.Char(u'批次')
+    warehouse = fields.Char(u'仓库')
+    goods_qty = fields.Float('数量', digits_compute=dp.get_precision('Goods Quantity'))
+    cost = fields.Float(u'成本', digits_compute=dp.get_precision('Accounting'))
 
     def init(self, cr):
         tools.drop_view_if_exists(cr, 'report_stock_balance')

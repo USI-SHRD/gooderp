@@ -65,7 +65,7 @@
                                     <field name='goods_id' readonly='1 '/>
                                     <field name='uom_id' readonly='1' />
                                     <field name='real_qty' readonly='1' sum='1' />
-                                    <field name='inventory_qty' on_change='onchange_qty(real_qty, inventory_qty)' />
+                                    <field name='inventory_qty' />
                                     <field name='difference_qty' readonly='1' />
                                 </tree>
                             </field>

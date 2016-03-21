@@ -1,30 +1,26 @@
 # -*- coding: utf-8 -*-
 
-# from openerp import tools
-from openerp.osv import fields
 from openerp.osv import osv
 import itertools
 import operator
 import openerp.addons.decimal_precision as dp
+from openerp import models, fields, api
 
 
-class report_stock_transceive(osv.osv):
+class report_stock_transceive(models.Model):
     _name = 'report.stock.transceive'
-    _auto = False
 
-    _columns = {
-        'goods': fields.char(u'产品'),
-        'uom': fields.char(u'单位'),
-        'warehouse': fields.char(u'仓库'),
-        'goods_qty_begain': fields.float('期初数量', digits_compute=dp.get_precision('Goods Quantity')),
-        'cost_begain': fields.float(u'期初成本', digits_compute=dp.get_precision('Accounting')),
-        'goods_qty_end': fields.float('期末数量', digits_compute=dp.get_precision('Goods Quantity')),
-        'cost_end': fields.float(u'期末成本', digits_compute=dp.get_precision('Accounting')),
-        'goods_qty_out': fields.float('出库数量', digits_compute=dp.get_precision('Goods Quantity')),
-        'cost_out': fields.float(u'出库成本', digits_compute=dp.get_precision('Accounting')),
-        'goods_qty_in': fields.float('入库数量', digits_compute=dp.get_precision('Goods Quantity')),
-        'cost_in': fields.float(u'入库成本', digits_compute=dp.get_precision('Accounting')),
-    }
+    goods = fields.Char(u'产品')
+    uom = fields.Char(u'单位')
+    warehouse = fields.Char(u'仓库')
+    goods_qty_begain = fields.Float('期初数量', digits_compute=dp.get_precision('Goods Quantity'))
+    cost_begain = fields.Float(u'期初成本', digits_compute=dp.get_precision('Accounting'))
+    goods_qty_end = fields.Float('期末数量', digits_compute=dp.get_precision('Goods Quantity'))
+    cost_end = fields.Float(u'期末成本', digits_compute=dp.get_precision('Accounting'))
+    goods_qty_out = fields.Float('出库数量', digits_compute=dp.get_precision('Goods Quantity'))
+    cost_out = fields.Float(u'出库成本', digits_compute=dp.get_precision('Accounting'))
+    goods_qty_in = fields.Float('入库数量', digits_compute=dp.get_precision('Goods Quantity'))
+    cost_in = fields.Float(u'入库成本', digits_compute=dp.get_precision('Accounting'))
 
     def select_sql(self, sql_type='out'):
         return '''
@@ -75,13 +71,13 @@ class report_stock_transceive(osv.osv):
             'goods': context.get('goods') or '',
         }
 
-    def collect_history_stock_by_sql(self, cr, sql_type='out', context=None):
-        context = context or {}
-        cr.execute((self.select_sql(sql_type) + self.from_sql(sql_type) + self.where_sql(
+    @api.model
+    def collect_history_stock_by_sql(self, sql_type='out'):
+        self.env.cr.execute((self.select_sql(sql_type) + self.from_sql(sql_type) + self.where_sql(
             sql_type) + self.group_sql(sql_type) + self.order_sql(
-            sql_type)).format(**self.get_context(sql_type, context=context)))
+            sql_type)).format(**self.get_context(sql_type, context=self.env.context)))
 
-        return cr.dictfetchall()
+        return self.env.cr.dictfetchall()
 
     def get_record_key(self, record, sql_type='out'):
         return (record.get('goods'), record.get('uom'), record.get('warehouse'))
@@ -196,7 +192,8 @@ class report_stock_transceive(osv.osv):
     def _compute_domain(self, result, domain):
         return filter(lambda res: self._compute_domain_util(res, domain), result)
 
-    def read_group(self, cr, uid, domain, fields, groupby, offset=0, limit=80, context=None, orderby=False, lazy=True):
+    @api.model
+    def read_group(self, domain, fields, groupby, offset=0, limit=80, orderby=False, lazy=True):
 
         def dict_plus(collect, values):
             for key, value in values.iteritems():
@@ -210,7 +207,7 @@ class report_stock_transceive(osv.osv):
             return collect
 
         res = []
-        values = self.search_read(cr, uid, domain=domain, fields=fields, offset=offset, limit=limit or 80, order=orderby, context=context)
+        values = self.search_read(domain=domain, fields=fields, offset=offset, limit=limit or 80, order=orderby)
 
         if groupby:
             key = operator.itemgetter(groupby[0])
@@ -241,11 +238,11 @@ class report_stock_transceive(osv.osv):
     def _compute_limit_and_offset(self, result, limit, offset):
         return result[offset:limit + offset]
 
-    def search_read(self, cr, uid, domain=None, fields=None, offset=0, limit=80, order=None, context=None):
-        context = context or {}
+    @api.model
+    def search_read(self, domain=None, fields=None, offset=0, limit=80, order=None):
 
-        out_collection = self.collect_history_stock_by_sql(cr, sql_type='out', context=context)
-        in_collection = self.collect_history_stock_by_sql(cr, sql_type='in', context=context)
+        out_collection = self.collect_history_stock_by_sql(sql_type='out')
+        in_collection = self.collect_history_stock_by_sql(sql_type='in')
 
         res = {}
         self.compute_history_stock_by_collect(res, in_collection, sql_type='in')

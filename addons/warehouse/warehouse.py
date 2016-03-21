@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 
 from openerp.osv import osv
-from openerp.osv import fields
+from openerp import models
+from openerp import fields
+from openerp import api
 
 
-class warehouse(osv.osv):
+class warehouse(models.Model):
     _inherit = 'warehouse'
 
     WAREHOUSE_TYPE = [
@@ -16,55 +18,50 @@ class warehouse(osv.osv):
         ('others', u'其他'),
     ]
 
+    name = fields.Char(u'仓库名称')
+    code = fields.Char(u'仓库编号')
+    type = fields.Selection(WAREHOUSE_TYPE, '类型', default='stock')
+    active = fields.Boolean(u'有效', default=True)
+
     # 使用SQL来取得指定仓库情况下的库存数量
-    def get_stock_qty(self, cr, uid, ids, context=None):
-        if isinstance(ids, (long, int)):
-            ids = [ids]
+    @api.multi
+    def get_stock_qty(self):
+        for warehouse in self:
+            self.env.cr.execute('''
+                SELECT sum(line.qty_remaining) as qty,
+                       sum(line.qty_remaining * (line.subtotal / line.goods_qty)) as subtotal,
+                       goods.name as goods
+                FROM wh_move_line line
+                LEFT JOIN warehouse wh ON line.warehouse_dest_id = wh.id
+                LEFT JOIN goods goods ON line.goods_id = goods.id
 
-        cr.execute('''
-            SELECT sum(line.qty_remaining) as qty,
-                   sum(line.qty_remaining * (line.subtotal / line.goods_qty)) as subtotal,
-                   goods.name as goods
-            FROM wh_move_line line
-            LEFT JOIN warehouse wh ON line.warehouse_dest_id = wh.id
-            LEFT JOIN goods goods ON line.goods_id = goods.id
+                WHERE line.qty_remaining > 0
+                  AND wh.type = 'stock'
+                  AND line.state = 'done'
+                  AND line.warehouse_dest_id = %s
 
-            WHERE line.qty_remaining > 0
-              AND wh.type = 'stock'
-              AND line.state = 'done'
-              AND line.warehouse_dest_id = %s
+                GROUP BY wh.name, goods.name
+            ''' % (warehouse.id, ))
 
-            GROUP BY wh.name, goods.name
-        ''' % (ids[0], ))
+            return self.env.cr.dictfetchall()
 
-        return cr.dictfetchall()
-
-    def name_search(self, cr, user, name, args=None, operator='ilike', context=None, limit=100):
+    @api.model
+    def name_search(self, name='', args=None, operator='ilike', limit=100):
         args = args or []
         if not filter(lambda _type: _type[0] == 'type', args):
             args = [['type', '=', 'stock']] + args
 
-        return super(warehouse, self).name_search(cr, user, name,
-            args=args, operator=operator, context=context, limit=limit)
+        return super(warehouse, self).name_search(name=name, args=args,
+            operator=operator, limit=limit)
 
-    def get_warehouse_by_type(self, cr, uid, _type, context=None):
+    @api.model
+    # TODO 返回值改变
+    def get_warehouse_by_type(self, _type):
         if not _type or _type not in map(lambda _type: _type[0], self.WAREHOUSE_TYPE):
             raise ValueError(u'错误，仓库类型"%s"不在预先定义的type之中，请联系管理员' % _type)
 
-        warehouse_ids = self.search(cr, uid, [('type', '=', _type)], limit=1, order='id asc', context=context)
-        if not warehouse_ids:
+        warehouses = self.search([('type', '=', _type)], limit=1, order='id asc')
+        if not warehouses:
             raise osv.except_osv(u'错误', u'不存在该类型"%s"的仓库，请检查基础数据是否全部导入')
 
-        return warehouse_ids[0]
-
-    _columns = {
-        'name': fields.char(u'仓库名称'),
-        'code': fields.char(u'仓库编号'),
-        'type': fields.selection(WAREHOUSE_TYPE, '类型'),
-        'active': fields.boolean(u'有效'),
-    }
-
-    _defaults = {
-        'active': True,
-        'type': 'stock',
-    }
+        return warehouses[0]

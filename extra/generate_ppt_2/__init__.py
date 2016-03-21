@@ -19,30 +19,6 @@
 #
 ##############################################################################
 
-{
-    "name": "GOODERP Warehouse Management",
-    "version": "0.1",
-    "author": 'ZhengXiang',
-    "website": "http://www.osbzr.com",
-    "category": "Generic Modules",
-    "depends": ['core', 'goods', 'decimal_precision', 'web_readonly_bypass', 'web_sublist', 'web_float_limit'],
-    "description": """
-    """,
-    "data": [
-        'wizard/save_bom_view.xml',
-        'wizard/stock_transceive_wizard_view.xml',
-        'view/assets_backend.xml',
-        'view/warehouse_view.xml',
-        'view/inventory_view.xml',
-        'view/production_view.xml',
-        'report/stock_balance_view.xml',
-        'report/stock_transceive_view.xml',
-        'action/warehouse_action.xml',
-        'menu/warehouse_menu.xml',
-        'data/warehouse_data.xml',
-        'data/sequence.xml',
-    ],
-    'installable': True,
-    "active": False,
-}
-# vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:
+import analyze_ppt
+import sale_order2ppt
+import controllers

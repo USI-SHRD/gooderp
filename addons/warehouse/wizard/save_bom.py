@@ -1,17 +1,14 @@
 # -*- coding: utf-8 -*-
-
-from openerp.osv import osv
-from openerp.osv import fields
+from openerp import models, fields, api
 
 
-class save_bom_memory(osv.osv_memory):
+class save_bom_memory(models.TransientModel):
     _name = 'save.bom.memory'
 
-    def save_bom(self, cr, uid, ids, context=None):
-        for bom in self.browse(cr, uid, ids, context=context):
-            return self.pool.get(context.get('active_model')).save_bom(
-                cr, uid, context.get('active_ids'), bom.name, context=context)
+    name = fields.Char(u'模板名称')
 
-    _columns = {
-        'name': fields.char(u'模板名称'),
-    }
+    @api.multi
+    def save_bom(self):
+        for bom in self:
+            models = self.env[self.env.ontext.get('active_model')].browse(self.env.context.get('active_ids'))
+            return models.save_bom(bom.name)

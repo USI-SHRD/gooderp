@@ -1,21 +1,26 @@
 # -*- coding: utf-8 -*-
 
 from openerp.osv import osv
-from openerp.osv import fields
 from utils import inherits, inherits_after, create_name, safe_division
 import openerp.addons.decimal_precision as dp
 from itertools import islice
+from openerp import models, fields, api
 
 
-class wh_assembly(osv.osv):
+class wh_assembly(models.Model):
     _name = 'wh.assembly'
 
     _inherits = {
         'wh.move': 'move_id',
     }
 
-    def apportion_cost(self, cr, uid, ids, subtotal, context=None):
-        for assembly in self.browse(cr, uid, ids, context=context):
+    move_id = fields.Many2one('wh.move', u'移库单', required=True, index=True, ondelete='cascade')
+    bom_id = fields.Many2one('wh.bom', u'模板', domain=[('type', '=', 'assembly')], context={'type': 'assembly'})
+    fee = fields.Float(u'组装费用', digits_compute=dp.get_precision('Accounting'))
+
+    @api.multi
+    def apportion_cost(self, subtotal):
+        for assembly in self:
             if not assembly.line_in_ids:
                 continue
 
@@ -42,80 +47,89 @@ class wh_assembly(osv.osv):
 
         return True
 
-    def update_parent_price(self, cr, uid, ids, context=None):
-        for assembly in self.browse(cr, uid, ids, context=context):
+    @api.multi
+    def update_parent_price(self):
+        for assembly in self:
             subtotal = sum(child.subtotal for child in assembly.line_out_ids) + assembly.fee
 
             assembly.apportion_cost(subtotal)
-        return True
-
-    def check_parent_length(self, cr, uid, ids, context=None):
-        for assembly in self.browse(cr, uid, ids, context=context):
-            if not len(assembly.line_in_ids) or not len(assembly.line_out_ids):
-                raise osv.except_osv(u'错误', u'组合件和子件的产品必须存在')
 
         return True
 
+    @api.one
+    def check_parent_length(self):
+        if not len(self.line_in_ids) or not len(self.line_out_ids):
+            raise osv.except_osv(u'错误', u'组合件和子件的产品必须存在')
+
+    @api.multi
     @inherits_after(res_back=False)
-    def approve_order(self, cr, uid, ids, context=None):
-        self.check_parent_length(cr, uid, ids, context=context)
-        return self.update_parent_price(cr, uid, ids, context=context)
+    def approve_order(self):
+        self.check_parent_length()
+        return self.update_parent_price()
 
+    @api.multi
     @inherits()
-    def cancel_approved_order(self, cr, uid, ids, context=None):
+    def cancel_approved_order(self):
         return True
 
+    @api.multi
     @inherits_after()
-    def unlink(self, cr, uid, ids, context=None):
-        return super(wh_assembly, self).unlink(cr, uid, ids, context=context)
+    def unlink(self):
+        return super(wh_assembly, self).unlink()
 
+    @api.model
     @create_name
-    def create(self, cr, uid, vals, context=None):
-        res_id = super(wh_assembly, self).create(cr, uid, vals, context=context)
-        self.update_parent_price(cr, uid, res_id, context=context)
+    def create(self, vals):
+        res_id = super(wh_assembly, self).create(vals)
+
+        self = self.browse(res_id)
+        self.update_parent_price()
 
         return res_id
 
-    def write(self, cr, uid, ids, vals, context=None):
-        res = super(wh_assembly, self).write(cr, uid, ids, vals, context=context)
-        self.update_parent_price(cr, uid, ids, context=context)
+    @api.multi
+    def write(self, vals):
+        res = super(wh_assembly, self).write(vals)
+        self.update_parent_price()
 
         return res
 
-    def onchange_bom(self, cr, uid, ids, bom_id, context=None):
+    @api.one
+    @api.onchange('bom_id')
+    def onchange_bom(self):
         line_out_ids, line_in_ids = [], []
 
         # TODO
-        warehouse_id = self.pool.get('warehouse').search(cr, uid, [('type', '=', 'stock')], limit=1, context=context)[0]
-        if bom_id:
-            bom = self.pool.get('wh.bom').browse(cr, uid, bom_id, context=context)
+        warehouse_id = self.env['warehouse'].search([('type', '=', 'stock')], limit=1)
+        if self.bom_id:
             line_in_ids = [{
                 'goods_id': line.goods_id.id,
-                'warehouse_id': self.pool.get('warehouse').get_warehouse_by_type(cr, uid, 'production'),
-                'warehouse_dest_id': warehouse_id,
+                'warehouse_id': self.env['warehouse'].get_warehouse_by_type('production'),
+                'warehouse_dest_id': warehouse_id[0].id,
                 'uom_id': line.goods_id.uom_id.id,
                 'goods_qty': line.goods_qty,
-            } for line in bom.line_parent_ids]
+            } for line in self.bom_id.line_parent_ids]
 
             line_out_ids = []
-            for line in bom.line_child_ids:
-                subtotal, price = self.pool.get('goods').get_suggested_cost_by_warehouse(
-                    cr, uid, line.goods_id.id, warehouse_id, line.goods_qty, context=context)
+            for line in self.bom_id.line_child_ids:
+                subtotal, price = line.goods_id.get_suggested_cost_by_warehouse(warehouse_id[0], line.goods_qty)
 
                 line_out_ids.append({
                         'goods_id': line.goods_id.id,
-                        'warehouse_id': warehouse_id,
-                        'warehouse_dest_id': self.pool.get('warehouse').get_warehouse_by_type(cr, uid, 'production'),
+                        'warehouse_id': warehouse_id[0].id,
+                        'warehouse_dest_id': self.env['warehouse'].get_warehouse_by_type('production'),
                         'uom_id': line.goods_id.uom_id.id,
                         'goods_qty': line.goods_qty,
                         'price': price,
                         'subtotal': subtotal,
                     })
 
+        # TODO warehouse_id[0].id可以替换成 warehouse_id试试
         return {'value': {'line_out_ids': line_out_ids, 'line_in_ids': line_in_ids}}
 
-    def update_bom(self, cr, uid, ids, context=None):
-        for assembly in self.browse(cr, uid, ids, context=context):
+    @api.multi
+    def update_bom(self):
+        for assembly in self:
             if assembly.bom_id:
                 return assembly.save_bom()
             else:
@@ -126,8 +140,9 @@ class wh_assembly(osv.osv):
                     'target': 'new',
                 }
 
-    def save_bom(self, cr, uid, ids, name='', context=None):
-        for assembly in self.browse(cr, uid, ids, context=context):
+    @api.multi
+    def save_bom(self, name=''):
+        for assembly in self:
             line_parent_ids = [[0, False, {
                 'goods_id': line.goods_id.id,
                 'goods_qty': line.goods_qty,
@@ -142,41 +157,41 @@ class wh_assembly(osv.osv):
                 assembly.bom_id.line_parent_ids.unlink()
                 assembly.bom_id.line_child_ids.unlink()
 
+                # TODO 可以试试 直接=
                 assembly.bom_id.write({'line_parent_ids': line_parent_ids, 'line_child_ids': line_child_ids})
             else:
-                bom_id = self.pool.get('wh.bom').create(cr, uid, {
+                bom_id = self.env['wh.bom'].create({
                         'name': name,
                         'type': 'assembly',
                         'line_parent_ids': line_parent_ids,
                         'line_child_ids': line_child_ids,
-                    }, context=context)
-                assembly.write({'bom_id': bom_id})
+                    })
+                assembly.bom_id = bom_id
 
         return True
 
-    _columns = {
-        'move_id': fields.many2one('wh.move', u'移库单', required=True, index=True, ondelete='cascade'),
-        'bom_id': fields.many2one('wh.bom', u'模板', domain=[('type', '=', 'assembly')], context={'type': 'assembly'}),
-        'fee': fields.float(u'组装费用', digits_compute=dp.get_precision('Accounting')),
-    }
 
-
-class wh_disassembly(osv.osv):
+class wh_disassembly(models.Model):
     _name = 'wh.disassembly'
 
     _inherits = {
         'wh.move': 'move_id',
     }
 
-    def apportion_cost(self, cr, uid, ids, subtotal, context=None):
-        for assembly in self.browse(cr, uid, ids, context=context):
+    move_id = fields.Many2one('wh.move', u'移库单', required=True, index=True, ondelete='cascade')
+    bom_id = fields.Many2one('wh.bom', u'模板', domain=[('type', '=', 'disassembly')], context={'type': 'disassembly'})
+    fee = fields.Float(u'拆卸费用', digits_compute=dp.get_precision('Accounting'))
+
+    @api.multi
+    def apportion_cost(self, subtotal):
+        for assembly in self:
             if not assembly.line_in_ids:
                 continue
 
             collects = []
             for child in assembly.line_in_ids:
                 collects.append((child, child.goods_id.get_suggested_cost_by_warehouse(
-                    child.warehouse_dest_id.id, child.goods_qty)[0]))
+                    child.warehouse_dest_id, child.goods_qty)[0]))
 
             amount_total, collect_child_subtotal = sum(collect[1] for collect in collects), 0
             for child, amount in islice(collects, 0, len(collects) - 1):
@@ -196,60 +211,66 @@ class wh_disassembly(osv.osv):
 
         return True
 
-    def update_child_price(self, cr, uid, ids, context=None):
-        for assembly in self.browse(cr, uid, ids, context=context):
+    @api.multi
+    def update_child_price(self):
+        for assembly in self:
             subtotal = sum(child.subtotal for child in assembly.line_out_ids) + assembly.fee
 
             assembly.apportion_cost(subtotal)
         return True
 
-    def check_parent_length(self, cr, uid, ids, context=None):
-        for assembly in self.browse(cr, uid, ids, context=context):
-            if not len(assembly.line_in_ids) or not len(assembly.line_out_ids):
-                raise osv.except_osv(u'错误', u'组合件和子件的产品必须存在')
+    @api.one
+    def check_parent_length(self):
+        if not len(self.line_in_ids) or not len(self.line_out_ids):
+            raise osv.except_osv(u'错误', u'组合件和子件的产品必须存在')
 
-        return True
-
+    @api.multi
     @inherits_after(res_back=False)
-    def approve_order(self, cr, uid, ids, context=None):
-        self.check_parent_length(cr, uid, ids, context=context)
-        return self.update_child_price(cr, uid, ids, context=context)
+    def approve_order(self):
+        self.check_parent_length()
+        return self.update_child_price()
 
+    @api.multi
     @inherits()
-    def cancel_approved_order(self, cr, uid, ids, context=None):
+    def cancel_approved_order(self):
         return True
 
+    @api.multi
     @inherits_after()
-    def unlink(self, cr, uid, ids, context=None):
-        return super(wh_disassembly, self).unlink(cr, uid, ids, context=context)
+    def unlink(self):
+        return super(wh_disassembly, self).unlink()
 
+    @api.model
     @create_name
-    def create(self, cr, uid, vals, context=None):
-        res_id = super(wh_disassembly, self).create(cr, uid, vals, context=context)
-        self.update_child_price(cr, uid, res_id, context=context)
+    def create(self, vals):
+        res_id = super(wh_disassembly, self).create(vals)
+        self = self.browse(res_id)
+        self.update_child_price()
 
         return res_id
 
-    def write(self, cr, uid, ids, vals, context=None):
-        res = super(wh_disassembly, self).write(cr, uid, ids, vals, context=context)
-        self.update_child_price(cr, uid, ids, context=context)
+    @api.multi
+    def write(self, vals):
+        res = super(wh_disassembly, self).write(vals)
+        self.update_child_price()
 
         return res
 
-    def onchange_bom(self, cr, uid, ids, bom_id, context=None):
+    @api.one
+    @api.onchange('bom_id')
+    def onchange_bom(self):
         line_out_ids, line_in_ids = [], []
         # TODO
-        warehouse_id = self.pool.get('warehouse').search(cr, uid, [('type', '=', 'stock')], limit=1, context=context)[0]
-        if bom_id:
-            bom = self.pool.get('wh.bom').browse(cr, uid, bom_id, context=context)
+        warehouse_id = self.env['warehouse'].search([('type', '=', 'stock')], limit=1)[0]
+        if self.bom_id:
             line_out_ids = []
-            for line in bom.line_parent_ids:
-                subtotal, price = self.pool.get('goods').get_suggested_cost_by_warehouse(
-                    cr, uid, line.goods_id.id, warehouse_id, line.goods_qty, context=context)
+            for line in self.bom_id.line_parent_ids:
+                subtotal, price = self.pool.get('goods').get_suggested_cost_by_warehouse(line.goods_id.id,
+                    warehouse_id, line.goods_qty)
                 line_out_ids.append({
                         'goods_id': line.goods_id.id,
-                        'warehouse_id': self.pool.get('warehouse').get_warehouse_by_type(cr, uid, 'production'),
-                        'warehouse_dest_id': warehouse_id,
+                        'warehouse_id': self.env['warehouse'].get_warehouse_by_type('production'),
+                        'warehouse_dest_id': warehouse_id.id,
                         'uom_id': line.goods_id.uom_id.id,
                         'goods_qty': line.goods_qty,
                         'price': price,
@@ -258,16 +279,17 @@ class wh_disassembly(osv.osv):
 
             line_in_ids = [{
                 'goods_id': line.goods_id.id,
-                'warehouse_id': warehouse_id,
-                'warehouse_dest_id': self.pool.get('warehouse').get_warehouse_by_type(cr, uid, 'production'),
+                'warehouse_id': warehouse_id.id,
+                'warehouse_dest_id': self.env['warehouse'].get_warehouse_by_type('production'),
                 'uom_id': line.goods_id.uom_id.id,
                 'goods_qty': line.goods_qty,
-            } for line in bom.line_child_ids]
+            } for line in self.bom_id.line_child_ids]
 
         return {'value': {'line_out_ids': line_out_ids, 'line_in_ids': line_in_ids}}
 
-    def update_bom(self, cr, uid, ids, context=None):
-        for disassembly in self.browse(cr, uid, ids, context=context):
+    @api.multi
+    def update_bom(self):
+        for disassembly in self:
             if disassembly.bom_id:
                 return disassembly.save_bom()
             else:
@@ -278,8 +300,9 @@ class wh_disassembly(osv.osv):
                     'target': 'new',
                 }
 
-    def save_bom(self, cr, uid, ids, name='', context=None):
-        for disassembly in self.browse(cr, uid, ids, context=context):
+    @api.multi
+    def save_bom(self, name=''):
+        for disassembly in self:
             line_child_ids = [[0, False, {
                 'goods_id': line.goods_id.id,
                 'goods_qty': line.goods_qty,
@@ -296,22 +319,15 @@ class wh_disassembly(osv.osv):
 
                 disassembly.bom_id.write({'line_parent_ids': line_parent_ids, 'line_child_ids': line_child_ids})
             else:
-                bom_id = self.pool.get('wh.bom').create(cr, uid, {
+                bom_id = self.env['wh.bom'].create({
                         'name': name,
                         'type': 'disassembly',
                         'line_parent_ids': line_parent_ids,
                         'line_child_ids': line_child_ids,
-                    }, context=context)
-                disassembly.write({'bom_id': bom_id})
+                    })
+                disassembly.bom_id = bom_id
 
         return True
-
-    _columns = {
-        'move_id': fields.many2one('wh.move', u'移库单', required=True, index=True, ondelete='cascade'),
-        'bom_id': fields.many2one('wh.bom', u'模板', domain=[('type', '=', 'disassembly')], context={'type': 'disassembly'}),
-        # 'is_apportion': fields.boolean(u'分摊分析'),
-        'fee': fields.float(u'拆卸费用', digits_compute=dp.get_precision('Accounting')),
-    }
 
 
 class wh_bom(osv.osv):
@@ -322,16 +338,10 @@ class wh_bom(osv.osv):
         ('disassembly', u'拆卸单'),
     ]
 
-    _columns = {
-        'name': fields.char(u'模板名称'),
-        'type': fields.selection(BOM_TYPE, u'类型'),
-        'line_parent_ids': fields.one2many('wh.bom.line', 'bom_id', u'组合件', domain=[('type', '=', 'parent')], context={'type': 'parent'}, copy=True),
-        'line_child_ids': fields.one2many('wh.bom.line', 'bom_id', u'子件', domain=[('type', '=', 'child')], context={'type': 'child'}, copy=True),
-    }
-
-    _defaults = {
-        'type': lambda self, cr, uid, ctx=None: ctx.get('type'),
-    }
+    name = fields.Char(u'模板名称')
+    type = fields.Selection(BOM_TYPE, u'类型', default=lambda self: self.env.context.get('type'))
+    line_parent_ids = fields.One2many('wh.bom.line', 'bom_id', u'组合件', domain=[('type', '=', 'parent')], context={'type': 'parent'}, copy=True)
+    line_child_ids = fields.One2many('wh.bom.line', 'bom_id', u'子件', domain=[('type', '=', 'child')], context={'type': 'child'}, copy=True)
 
 
 class wh_bom_line(osv.osv):
@@ -342,14 +352,7 @@ class wh_bom_line(osv.osv):
         ('child', u'子间'),
     ]
 
-    _columns = {
-        'bom_id': fields.many2one('wh.bom', u'模板'),
-        'type': fields.selection(BOM_LINE_TYPE, u'类型'),
-        'goods_id': fields.many2one('goods', u'产品'),
-        'goods_qty': fields.float(u'数量', digits_compute=dp.get_precision('Goods Quantity')),
-    }
-
-    _defaults = {
-        'type': lambda self, cr, uid, ctx=None: ctx.get('type'),
-        'goods_id': 1,
-    }
+    bom_id = fields.Many2one('wh.bom', u'模板')
+    type = fields.Selection(BOM_LINE_TYPE, u'类型', default=lambda self: self.env.context.get('type'))
+    goods_id = fields.Many2one('goods', u'产品', default=1)
+    goods_qty = fields.Float(u'数量', digits_compute=dp.get_precision('Goods Quantity'))

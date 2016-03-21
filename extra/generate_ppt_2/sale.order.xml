@@ -1,0 +1,40 @@
+<?xml version = "1.0" encoding = "utf-8"?>
+<openerp>
+    <data>
+        <record id="sale_order2ppt_form" model="ir.ui.view">
+            <field name="name">sale.order.ppt.form</field>
+            <field name="model">sale.order.ppt</field>
+            <field name="arch" type="xml">
+                <form string="生成ppt方案" >
+                    <group>
+                        <field name='sale_order_ppt_char' readonly='1'/>
+                    </group>
+                    <!--<button name='confirm_create_sale_order_ppt' type='object' string='确定生成方案'  class="oe_highlight"/>-->
+                        <!--或者-->
+                    <!--<button string="取消" class="oe_link" special="cancel"/>-->
+                </form>
+               </field>
+        </record>
+
+        <act_window id="sale_order2ppt_action"
+            name='生成ppt方案'
+            src_model="sale.order"
+            res_model="sale.order.ppt"
+            view_type="form"
+            view_mode="form"
+            target="new" groups='base.group_sale_salesman'/>
+
+         <record id='dftg_sale_order_form_ppt' model='ir.ui.view'>
+            <field name='name'>dftg.sale.order.form.ppt</field>
+            <field name='model'>sale.order</field>
+            <field name='inherit_id' ref='sale.view_order_form'/>
+            <field name='type'>form</field>
+            <field name='arch' type='xml' >
+                <xpath expr="//button[@name='invoice_cancel']" position='after'>
+                    <!--<button name="%(sale_order2ppt_action)d" string="生成ppt方案" class="oe_highlight" type="action" />-->
+                    <button name="get_ppt_file" string="生成ppt方案" class="oe_highlight" type="object" />
+                </xpath>
+            </field>
+        </record>
+    </data>
+</openerp>
