@@ -42,7 +42,20 @@
                         </group>
                     </group>
                     <label string="选择预收单"/>
-                    <field name="pay_source_ids">
+                    <field name="pay_source_ids" attrs="{'invisible': [('business_type','not in',['adv_pay_rec_get','adv_get_rec_pay', ''])]}">
+						<tree string="Pay Order Lines" editable="bottom">
+							<field name="state" invisible="1"/>
+							<field name="name" readonly='1'/>
+							<field name="partner_id" readonly='1'/>
+							<field name="type" readonly='1'/>
+                            <field name="date" readonly='1'/>
+                            <field name="advance_payment" string='金额' readonly='1' sum="合计"/>
+                            <field name="reconciled"  string='已核销金额' readonly='1' sum="合计"/>
+                            <field name="to_reconcile"  string='未核销金额' readonly='1' sum="合计"/>
+                            <field name="this_reconcile" string='本次核销金额' sum="合计"/>
+                       </tree>
+                    </field>
+                    <field name="source_ids" attrs="{'invisible': [('business_type','in',['adv_pay_rec_get','adv_get_rec_pay'])]}">
                     	<tree string="Pay Order Lines" editable="bottom">
                     		<field name="state" invisible="1"/>
                     		<field name="name" readonly='1'/>
@@ -69,7 +82,7 @@
                             <field name="this_reconcile" sum="合计"/>
                        </tree>
                     </field>
-	                <field name="note"  nolabel="1" placeholder="备注信息……"/>
+	                <field name="note" nolabel="1" placeholder="备注信息……"/>
                 </sheet>
                 </form>
             </field>
