@@ -27,8 +27,8 @@
             <field name="arch" type="xml">
                 <form string="Money Order">
                 <header>
-                	<button name="money_approve" states="draft" string="审核" type="object" class="oe_highlight"/>
-					<button name="money_action_draft" states="done" string="反审核" type="object"/>
+                	<button name="money_order_done" states="draft" string="审核" type="object" class="oe_highlight"/>
+					<button name="money_order_draft" states="done" string="反审核" type="object"/>
                 	<button name="print_money_order" states="done" string="打印" type="object" class="oe_highlight"/>
                     <field name="state" widget="statusbar" statusbar_visible="draft,done" readonly="1"/>
                 </header>
@@ -41,7 +41,7 @@
                     </div>
                     <group>
                         <group>
-				            <field name="partner_id" on_change="onchange_partner_id(partner_id)"/>
+				            <field name="partner_id"/>
                         </group>
                         <group>
                             <field name="date"/>
@@ -61,8 +61,7 @@
                     	<tree string="Source Order Lines" editable="bottom">
                     		<field name="state" invisible="1"/>
                     		<field name="name" readonly='1'/>
-							<field name="partner_id" readonly='1'/>
-                    		<field name="business_type" readonly='1'/>
+                    		<field name="category_id" readonly='1'/>
                             <field name="date" readonly='1'/>
                             <field name="amount" readonly='1' sum="合计"/>
                             <field name="reconciled" readonly='1' sum="合计"/>
@@ -129,7 +128,7 @@
             <field name="arch" type="xml">
                 <tree string="Source Order Line">
                     <field name="name" readonly='1'/>
-            		<field name="business_type" readonly='1'/>
+            		<field name="category_id" readonly='1'/>
                     <field name="date" readonly='1'/>
                     <field name="amount" readonly='1'/>
                     <field name="reconciled" readonly='1'/>
@@ -148,7 +147,7 @@
                 <tree string="Source Order Line" editable="bottom">
                     <field name="name"/>
                     <field name="partner_id"/>
-            		<field name="business_type"/>
+            		<field name="category_id"/>
                     <field name="date"/>
                     <field name="amount"/>
                     <field name="reconciled"/>
