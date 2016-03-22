@@ -124,7 +124,7 @@ class other_money_order_line(models.Model):
 
     other_money_id = fields.Many2one('other.money.order', string=u'其他收支')
     category_id = fields.Many2one('core.category',u'类别',
-                                       domain=['|',('type','=','payment'),('type','=','receipt')])
+                                       domain=['|',('type','=','income'),('type','=','expense')])
     source_id = fields.Many2one('money.invoice', string=u'源单')
     amount = fields.Float(string=u'金额')
     note = fields.Char(string=u'备注')
