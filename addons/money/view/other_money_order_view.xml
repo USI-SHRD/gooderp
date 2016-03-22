@@ -23,14 +23,14 @@
             <field name="arch" type="xml">
                 <form string="Other Money Order">
                 <header>
-					<button name="other_money_approve" states="draft" string="审核" type="object" class="oe_highlight"/>
+					<button name="other_money_done" states="draft" string="审核" type="object" class="oe_highlight"/>
+					<button name="other_money_draft" states="done" string="反审核" type="object"/>
                 	<button name="print_other_money_order" states="done" string="打印" type="object" class="oe_highlight"/>
                     <field name="state" widget="statusbar" statusbar_visible="draft,done" readonly="1"/>
                 </header>
                 <sheet>
                     <div class="oe_title">
                         <h1>
-                            <label string="其他收支单 "/>
                             <field name="name" class="oe_inline" readonly="1"/>
                         </h1>
                     </div>
@@ -43,11 +43,11 @@
                         </group>
                     </group>
                     <field name="line_ids">
-                    	<tree string="Other Money Order Lines" editable="bottom">
-                    		<field name="other_money_type"/>
+                    	<tree string="其他收支单明细" editable="bottom">
+                    		<field name="category_id"/>
                             <field name="amount" sum="合计"/>
                             <field name="note"/>
-                            <field name="other_money_source"/>
+                            <field name="source_id" invisible='1'/>
                        </tree>
                     </field>
                     <group>
@@ -71,9 +71,9 @@
             </field>
         </record>
 
-        <!-- 其他收款管理 action -->
+        <!-- 其他收入单 action -->
         <record id="other_money_receipt_action" model="ir.actions.act_window">
-            <field name="name">其他收款单</field>
+            <field name="name">其他收入单</field>
             <field name="type">ir.actions.act_window</field>
             <field name="res_model">other.money.order</field>
             <field name="view_mode">tree,form</field>
@@ -81,14 +81,14 @@
             <field name="domain">[('type','=','other_get')]</field>
             <field name="help" type="html">
               <p class="oe_view_nocontent_create">
-                点击创建其他收款单
+                点击创建其他收入单
               </p>
             </field>
         </record>
         
-        <!-- 其他付款管理 action -->
+        <!-- 其他支出单 action -->
         <record id="other_money_payment_action" model="ir.actions.act_window">
-            <field name="name">其他付款单</field>
+            <field name="name">其他支出单</field>
             <field name="type">ir.actions.act_window</field>
             <field name="res_model">other.money.order</field>
             <field name="view_mode">tree,form</field>
@@ -96,25 +96,10 @@
             <field name="domain">[('type','=','other_pay')]</field>
             <field name="help" type="html">
               <p class="oe_view_nocontent_create">
-                点击创建其他付款单
+                点击创建其他支出单
               </p>
             </field>
         </record>
-
-		<!--other.money.order form视图-->
-        <record id="other_money_order" model="ir.ui.view">
-            <field name="name">other.money.type</field>
-            <field name="model">other.money.type</field>
-            <field name="arch" type="xml">
-                <form string='rh_values'>
-                    <group>
-                        <field name="name"/>
-                        <field name="type" invisible="1"/>
-                    </group>
-                </form>
-            </field>
-        </record>
-
 		<!-- 其他收款单menu、其他付款单menu -->
         <menuitem id="menu_other_money_receipt_action" action="other_money_receipt_action" parent="menu_money_manage" sequence="5"/>
         <menuitem id="menu_other_money_payment_action" action="other_money_payment_action" parent="menu_money_manage" sequence="6"/>

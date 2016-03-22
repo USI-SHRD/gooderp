@@ -8,7 +8,7 @@
                 <tree string='产品'>
                     <field name='name' />
                     <field name='uom_id' />
-                    <field name='using_batch' />
+                    <field name='cost' />
                 </tree>
             </field>
         </record>
@@ -40,6 +40,7 @@
                                         <field name='force_batch_one' attrs="{'invisible': [('using_batch', '=', False)]}" />                             
                                     </group>
                                     <group>
+                                        <field name='cost'/>
                                         <field name='price_ids'>
                                             <tree editable="BOTTOM" string="价格清单">
                                                 <field name="category_id" widget="selection"/>
