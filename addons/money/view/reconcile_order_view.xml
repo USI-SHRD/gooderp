@@ -9,6 +9,7 @@
                 <tree string="Reconcile Order">
                     <field name="name" string="单据编号"/>
                     <field name="pay_source_ids"/>
+                    <field name="source_ids"/>
                     <field name="get_source_ids"/>
                     <field name="state"/>
                 </tree>
@@ -22,7 +23,7 @@
             <field name="arch" type="xml">
                 <form string="Reconcile Order">
                 <header>
-                	<button name="reconcile_approve" states="draft" string="审核" type="object" class="oe_highlight"/>
+                	<button name="reconcile_order_done" states="draft" string="审核" type="object" class="oe_highlight"/>
                     <field name="state" widget="statusbar" statusbar_visible="draft,done" readonly="1"/>
                 </header>
                 <sheet>
@@ -38,29 +39,28 @@
 				            <field name="business_type" on_change="onchange_partner_id(partner_id, business_type)"/>
                         </group>
                         <group>
+                        	<field name="to_partner_id" attrs="{'required': [('business_type','in',['get_to_get','pay_to_pay'])], 'invisible': [('business_type','in',['adv_pay_rec_get','adv_get_rec_pay', 'get_rec_pay', False])]}"/>
                             <field name="date"/>
                         </group>
                     </group>
-                    <label string="选择预收单"/>
-                    <field name="pay_source_ids" attrs="{'invisible': [('business_type','not in',['adv_pay_rec_get','adv_get_rec_pay', ''])]}">
+                    <label string="选择预收单" attrs="{'invisible': [('business_type','not in',['adv_pay_rec_get','adv_get_rec_pay'])]}"/>
+                    <!--预收	预付-->
+                    <field name="pay_source_ids" attrs="{'invisible': [('business_type','not in',['adv_pay_rec_get','adv_get_rec_pay'])]}">
 						<tree string="Pay Order Lines" editable="bottom">
-							<field name="state" invisible="1"/>
 							<field name="name" readonly='1'/>
-							<field name="partner_id" readonly='1'/>
-							<field name="type" readonly='1'/>
                             <field name="date" readonly='1'/>
-                            <field name="advance_payment" string='金额' readonly='1' sum="合计"/>
+                            <field name="amount" string='金额' readonly='1' sum="合计"/>
                             <field name="reconciled"  string='已核销金额' readonly='1' sum="合计"/>
                             <field name="to_reconcile"  string='未核销金额' readonly='1' sum="合计"/>
                             <field name="this_reconcile" string='本次核销金额' sum="合计"/>
                        </tree>
                     </field>
-                    <field name="source_ids" attrs="{'invisible': [('business_type','in',['adv_pay_rec_get','adv_get_rec_pay'])]}">
+                    <label string="选择预收单" attrs="{'invisible': [('business_type','not in',['get_rec_pay', 'pay_to_pay'])]}"/>
+                    <field name="source_ids" attrs="{'invisible': [('business_type','not in',['get_rec_pay', 'pay_to_pay'])]}">
                     	<tree string="Pay Order Lines" editable="bottom">
                     		<field name="state" invisible="1"/>
                     		<field name="name" readonly='1'/>
-							<field name="partner_id" readonly='1'/>
-                    		<field name="business_type" readonly='1'/>
+                    		<field name="category_id" readonly='1'/>
                             <field name="date" readonly='1'/>
                             <field name="amount" readonly='1' sum="合计"/>
                             <field name="reconciled" readonly='1' sum="合计"/>
@@ -68,13 +68,12 @@
                             <field name="this_reconcile" sum="合计"/>
                        </tree>
                     </field>
-                    <label string="选择应收单"/>
-                    <field name="get_source_ids">
+                    <label string="选择应收单" attrs="{'invisible': [('business_type','in',['pay_to_pay'])]}"/>
+                    <field name="get_source_ids" attrs="{'invisible': [('business_type','in',['pay_to_pay'])]}">
                     	<tree string="Get Order Lines" editable="bottom">
                     		<field name="state" invisible="1"/>
                     		<field name="name" readonly='1'/>
-							<field name="partner_id" readonly='1'/>
-                    		<field name="business_type" readonly='1'/>
+                    		<field name="category_id" readonly='1'/>
                             <field name="date" readonly='1'/>
                             <field name="amount" readonly='1' sum="合计"/>
                             <field name="reconciled" readonly='1' sum="合计"/>
@@ -100,7 +99,7 @@
               </p>
             </field>
         </record>
-		<!-- 源单menu -->
+		<!-- 核销单单menu -->
 		<menuitem id="menu_reconcile_action" action="reconcile_action" parent="menu_money_manage" sequence="4"/>
 	</data>
 </openerp>
