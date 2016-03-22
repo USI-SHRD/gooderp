@@ -21,7 +21,8 @@
             <field name="arch" type="xml">
                 <form string="Money Transfer Order">
 				<header>
-					<button name="money_transfer_approve" states="draft" string="审核" type="object" class="oe_highlight"/>
+					<button name="money_transfer_done" states="draft" string="审核" type="object" class="oe_highlight"/>
+					<button name="money_transfer_draft" states="done" string="反审核" type="object"/>
 					<field name="state" widget="statusbar" statusbar_visible="draft,done" readonly="1"/>
 				</header>
                 <sheet>
@@ -49,6 +50,7 @@
 	                <field name="note" nolabel="1" placeholder="备注信息……"/>
 	                 <group>
                     	<group>
+                    	    <field name="create_uid" string="制单人" readonly="1"/>
 		                	<field name="create_date" string="录单时间" readonly="1"/>
 		                </group>
 		                <group>	
