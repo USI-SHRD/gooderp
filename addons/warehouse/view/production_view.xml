@@ -136,6 +136,7 @@
                                 'tree_view_ref': 'warehouse.wh_move_line_out_tree',
                                 'warehouse_dest_type': 'others',
                                 'lot': True,
+                                'type': 'out',
                             }" attrs="{'readonly': [('state', '!=', 'draft')]}" />
                         </group>
 
@@ -216,6 +217,7 @@
                                 'tree_view_ref': 'warehouse.wh_move_line_out_tree',
                                 'warehouse_dest_type': 'others',
                                 'lot': True,
+                                'type': 'out',
                             }" attrs="{'readonly': [('state', '!=', 'draft')]}" />
                         </group>
 

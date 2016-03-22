@@ -37,11 +37,10 @@ class report_stock_transceive_wizard(models.TransientModel):
 
     @api.multi
     def open_report(self):
-        for wizard in self:
-            return {
-                'type': 'ir.actions.act_window',
-                'res_model': 'report.stock.transceive',
-                'view_mode': 'tree',
-                'name': u'商品收发明细表',
-                'context': wizard.read(['date_start', 'date_end', 'warehouse', 'goods']),
-            }
+        return {
+            'type': 'ir.actions.act_window',
+            'res_model': 'report.stock.transceive',
+            'view_mode': 'tree',
+            'name': u'商品收发明细表',
+            'context': self.read(['date_start', 'date_end', 'warehouse', 'goods'])[0],
+        }

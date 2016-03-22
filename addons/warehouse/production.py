@@ -27,7 +27,7 @@ class wh_assembly(models.Model):
             collects = []
             for parent in assembly.line_in_ids:
                 collects.append((parent, parent.goods_id.get_suggested_cost_by_warehouse(
-                    parent.warehouse_dest_id.id, parent.goods_qty)[0]))
+                    parent.warehouse_dest_id, parent.goods_qty)[0]))
 
             amount_total, collect_parent_subtotal = sum(collect[1] for collect in collects), 0
             for parent, amount in islice(collects, 0, len(collects) - 1):
@@ -80,12 +80,10 @@ class wh_assembly(models.Model):
     @api.model
     @create_name
     def create(self, vals):
-        res_id = super(wh_assembly, self).create(vals)
-
-        self = self.browse(res_id)
+        self = super(wh_assembly, self).create(vals)
         self.update_parent_price()
 
-        return res_id
+        return self
 
     @api.multi
     def write(self, vals):
@@ -243,11 +241,10 @@ class wh_disassembly(models.Model):
     @api.model
     @create_name
     def create(self, vals):
-        res_id = super(wh_disassembly, self).create(vals)
-        self = self.browse(res_id)
+        self = super(wh_disassembly, self).create(vals)
         self.update_child_price()
 
-        return res_id
+        return self
 
     @api.multi
     def write(self, vals):

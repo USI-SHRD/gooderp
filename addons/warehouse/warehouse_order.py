@@ -121,7 +121,7 @@ class wh_internal(osv.osv):
     def _get_amount_total(self):
         self.amount_total = sum(line.subtotal for line in self.line_out_ids)
 
-    @api.multi
+    @api.model
     @create_name
-    def create(self):
-        return super(wh_internal, self).create()
+    def create(self, vals):
+        return super(wh_internal, self).create(vals)
