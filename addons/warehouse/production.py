@@ -101,10 +101,10 @@ class wh_assembly(models.Model):
         warehouse_id = self.env['warehouse'].search([('type', '=', 'stock')], limit=1)
         if self.bom_id:
             line_in_ids = [{
-                'goods_id': line.goods_id.id,
+                'goods_id': line.goods_id,
                 'warehouse_id': self.env['warehouse'].get_warehouse_by_type('production'),
-                'warehouse_dest_id': warehouse_id[0].id,
-                'uom_id': line.goods_id.uom_id.id,
+                'warehouse_dest_id': warehouse_id,
+                'uom_id': line.goods_id.uom_id,
                 'goods_qty': line.goods_qty,
             } for line in self.bom_id.line_parent_ids]
 
@@ -113,17 +113,17 @@ class wh_assembly(models.Model):
                 subtotal, price = line.goods_id.get_suggested_cost_by_warehouse(warehouse_id[0], line.goods_qty)
 
                 line_out_ids.append({
-                        'goods_id': line.goods_id.id,
-                        'warehouse_id': warehouse_id[0].id,
+                        'goods_id': line.goods_id,
+                        'warehouse_id': warehouse_id,
                         'warehouse_dest_id': self.env['warehouse'].get_warehouse_by_type('production'),
-                        'uom_id': line.goods_id.uom_id.id,
+                        'uom_id': line.goods_id.uom_id,
                         'goods_qty': line.goods_qty,
                         'price': price,
                         'subtotal': subtotal,
                     })
 
-        # TODO warehouse_id[0].id可以替换成 warehouse_id试试
-        return {'value': {'line_out_ids': line_out_ids, 'line_in_ids': line_in_ids}}
+        self.line_out_ids = line_out_ids or False
+        self.line_in_ids = line_in_ids or False
 
     @api.multi
     def update_bom(self):
@@ -142,7 +142,7 @@ class wh_assembly(models.Model):
     def save_bom(self, name=''):
         for assembly in self:
             line_parent_ids = [[0, False, {
-                'goods_id': line.goods_id.id,
+                'goods_id': line.goods_id,
                 'goods_qty': line.goods_qty,
             }] for line in assembly.line_in_ids]
 
@@ -258,31 +258,32 @@ class wh_disassembly(models.Model):
     def onchange_bom(self):
         line_out_ids, line_in_ids = [], []
         # TODO
-        warehouse_id = self.env['warehouse'].search([('type', '=', 'stock')], limit=1)[0]
+        warehouse_id = self.env['warehouse'].search([('type', '=', 'stock')], limit=1)
         if self.bom_id:
             line_out_ids = []
             for line in self.bom_id.line_parent_ids:
-                subtotal, price = self.pool.get('goods').get_suggested_cost_by_warehouse(line.goods_id.id,
+                subtotal, price = line.goods_id.get_suggested_cost_by_warehouse(
                     warehouse_id, line.goods_qty)
                 line_out_ids.append({
-                        'goods_id': line.goods_id.id,
+                        'goods_id': line.goods_id,
                         'warehouse_id': self.env['warehouse'].get_warehouse_by_type('production'),
-                        'warehouse_dest_id': warehouse_id.id,
-                        'uom_id': line.goods_id.uom_id.id,
+                        'warehouse_dest_id': warehouse_id,
+                        'uom_id': line.goods_id.uom_id,
                         'goods_qty': line.goods_qty,
                         'price': price,
                         'subtotal': subtotal,
                     })
 
             line_in_ids = [{
-                'goods_id': line.goods_id.id,
-                'warehouse_id': warehouse_id.id,
+                'goods_id': line.goods_id,
+                'warehouse_id': warehouse_id,
                 'warehouse_dest_id': self.env['warehouse'].get_warehouse_by_type('production'),
-                'uom_id': line.goods_id.uom_id.id,
+                'uom_id': line.goods_id.uom_id,
                 'goods_qty': line.goods_qty,
             } for line in self.bom_id.line_child_ids]
 
-        return {'value': {'line_out_ids': line_out_ids, 'line_in_ids': line_in_ids}}
+        self.line_out_ids = line_out_ids or False
+        self.line_in_ids = line_in_ids or False
 
     @api.multi
     def update_bom(self):
