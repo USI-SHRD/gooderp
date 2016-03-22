@@ -5,8 +5,8 @@ from openerp import models, fields, api
 CORE_CATEGORY_TYPE = [('customer',u'客户'),
                       ('supplier',u'供应商'),
                       ('goods',u'商品'),
-                      ('payment',u'支出'),
-                      ('receipt',u'收入'),
+                      ('expense',u'支出'),
+                      ('income',u'收入'),
                       ('attribute',u'属性'),
                       ('goods',u'产品')]
 CORE_COST_METHOD = [('average',u'移动平均法'),
