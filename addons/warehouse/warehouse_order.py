@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from openerp.osv import osv
-from utils import inherits, inherits_after, create_name
+from utils import inherits, inherits_after, create_name, create_origin
 import openerp.addons.decimal_precision as dp
 from openerp import models, fields, api
 
@@ -44,8 +44,8 @@ class wh_out(models.Model):
 
     @api.model
     @create_name
+    @create_origin
     def create(self, vals):
-        print vals
         return super(wh_out, self).create(vals)
 
 
@@ -85,8 +85,12 @@ class wh_in(models.Model):
     def _get_amount_total(self):
         self.amount_total = sum(line.subtotal for line in self.line_in_ids)
 
+    def get_move_origin(self, vals):
+        return self._name + '.' + vals.get('type')
+
     @api.model
     @create_name
+    @create_origin
     def create(self, vals):
         return super(wh_in, self).create(vals)
 
@@ -121,7 +125,11 @@ class wh_internal(osv.osv):
     def _get_amount_total(self):
         self.amount_total = sum(line.subtotal for line in self.line_out_ids)
 
+    def get_move_origin(self, vals):
+        return self._name + '.' + vals.get('type')
+
     @api.model
     @create_name
+    @create_origin
     def create(self, vals):
         return super(wh_internal, self).create(vals)

@@ -32,7 +32,7 @@ class report_stock_balance(models.Model):
                 FROM wh_move_line line
                 LEFT JOIN warehouse wh ON line.warehouse_dest_id = wh.id
                 LEFT JOIN goods goods ON line.goods_id = goods.id
-                    LEFT JOIN uom uom ON goods.uom_id = uom.id
+                LEFT JOIN uom uom ON line.uom_id = uom.id
 
                 WHERE line.qty_remaining > 0
                   AND wh.type = 'stock'

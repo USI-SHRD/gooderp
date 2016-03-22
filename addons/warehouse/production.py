@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from openerp.osv import osv
-from utils import inherits, inherits_after, create_name, safe_division
+from utils import inherits, inherits_after, create_name, safe_division, create_origin
 import openerp.addons.decimal_precision as dp
 from itertools import islice
 from openerp import models, fields, api
@@ -79,6 +79,7 @@ class wh_assembly(models.Model):
 
     @api.model
     @create_name
+    @create_origin
     def create(self, vals):
         self = super(wh_assembly, self).create(vals)
         self.update_parent_price()
@@ -240,6 +241,7 @@ class wh_disassembly(models.Model):
 
     @api.model
     @create_name
+    @create_origin
     def create(self, vals):
         self = super(wh_disassembly, self).create(vals)
         self.update_child_price()

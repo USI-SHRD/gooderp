@@ -12,6 +12,7 @@ class wh_move(models.Model):
         ('done', u'已审核'),
     ]
 
+    origin = fields.Char(u'源单类型', required=True)
     name = fields.Char(u'单据编号', copy=False, default='/')
     state = fields.Selection(MOVE_STATE, u'状态', copy=False, default='draft')
     partner_id = fields.Many2one('partner', u'业务伙伴')

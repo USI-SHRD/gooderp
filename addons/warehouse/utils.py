@@ -17,6 +17,19 @@ def create_name(method):
     return func
 
 
+def create_origin(method):
+    @functools.wraps(method)
+    def func(self, vals):
+        if hasattr(self, 'get_move_origin'):
+            vals.update({'origin': self.get_move_origin(vals)})
+        else:
+            vals.update({'origin': self._name})
+
+        return method(self, vals)
+
+    return func
+
+
 def inherits_after(res_back=True, collect_before_res=False):
     def wrapper(method):
         @functools.wraps(method)
