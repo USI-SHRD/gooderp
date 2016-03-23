@@ -64,8 +64,8 @@ class money_order(models.Model):
     line_ids = fields.One2many('money.order.line', 'money_id', string=u'收付款单行', readonly=True, states={'draft': [('readonly', False)]})
     source_ids = fields.One2many('source.order.line', 'money_id', string=u'源单行', readonly=True, states={'draft': [('readonly', False)]})
     type = fields.Selection(TYPE_SELECTION, string=u'类型', default=lambda self: self._context.get('type'))
-    amount = fields.Float(string=u'总金额', store=True, compute='_compute_advance_payment')
-    advance_payment = fields.Float(string=u'本次预收款', store=True, compute='_compute_advance_payment')
+    amount = fields.Float(string=u'总金额', compute='_compute_advance_payment', store=True,readonly=True)
+    advance_payment = fields.Float(string=u'本次预收款', compute='_compute_advance_payment', store=True,readonly=True)
     to_reconcile = fields.Float(string=u'未核销预收款')
     reconciled = fields.Float(string=u'已核销预收款')
 

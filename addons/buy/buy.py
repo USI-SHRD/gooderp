@@ -63,12 +63,12 @@ class buy_order(models.Model):
     type = fields.Selection([('buy', u'购货'),('return', u'退货')], u'类型', default='buy')
     line_ids = fields.One2many('buy.order.line', 'order_id', u'采购订单行', states=READONLY_STATES, copy=True)
     note = fields.Text(u'备注', states=READONLY_STATES)
-    total = fields.Float(string=u'合计', store=True,
+    total = fields.Float(string=u'合计', store=True,readonly=True,
             compute='_compute_amount', track_visibility='always', help=u'所有订单行小计之和')
     discount_rate = fields.Float(u'优惠率(%)', states=READONLY_STATES)
     discount_amount = fields.Float(string=u'优惠金额', store=True, states=READONLY_STATES,
             compute='_compute_amount', track_visibility='always')
-    amount = fields.Float(string=u'优惠后金额', store=True, states=READONLY_STATES,
+    amount = fields.Float(string=u'优惠后金额', store=True,readonly=True,
             compute='_compute_amount', track_visibility='always')
     approve_uid = fields.Many2one('res.users', u'审核人', copy=False)
     state = fields.Selection(BUY_ORDER_STATES, u'订单状态', readonly=True, help=u"采购订单的状态", select=True, copy=False, default='draft')
@@ -202,18 +202,18 @@ class buy_order_line(models.Model):
 
     goods_id = fields.Many2one('goods', u'商品')
     spec = fields.Char(u'属性')
-    uom_id = fields.Many2one('uom', u'单位', compute=_compute_uom_id)
+    uom_id = fields.Many2one('uom', u'单位', compute=_compute_uom_id, store=True,readonly=True)
     warehouse_id = fields.Many2one('warehouse', u'调出仓库', default=_default_warehouse)
     warehouse_dest_id = fields.Many2one('warehouse', u'调入仓库', default=_default_warehouse_dest)
     quantity = fields.Float(u'数量', default=1)
     price = fields.Float(u'购货单价')
-    price_taxed = fields.Float(u'含税单价', compute=_compute_all_amount)
+    price_taxed = fields.Float(u'含税单价', compute=_compute_all_amount, store=True,readonly=True)
     discount_rate = fields.Float(u'折扣率%')
-    discount = fields.Float(u'折扣额', compute=_compute_all_amount)
-    amount = fields.Float(u'金额', compute=_compute_all_amount)
+    discount = fields.Float(u'折扣额', compute=_compute_all_amount, store=True,readonly=True)
+    amount = fields.Float(u'金额', compute=_compute_all_amount, store=True,readonly=True)
     tax_rate = fields.Float(u'税率(%)', default=17.0)
-    tax_amount = fields.Float(u'税额', compute=_compute_all_amount)
-    subtotal = fields.Float(u'价税合计', compute=_compute_all_amount)
+    tax_amount = fields.Float(u'税额', compute=_compute_all_amount, store=True,readonly=True)
+    subtotal = fields.Float(u'价税合计', compute=_compute_all_amount, store=True,readonly=True)
     note = fields.Char(u'备注')
     origin = fields.Char(u'源单号')
     order_id = fields.Many2one('buy.order', u'订单编号', select=True, required=True, ondelete='cascade')
@@ -238,10 +238,10 @@ class buy_receipt(models.Model):
     date_due = fields.Date(u'到期日期', copy=False)
     discount_rate = fields.Float(u'优惠率(%)', states=READONLY_STATES)
     discount_amount = fields.Float(u'优惠金额', compute=_compute_all_amount, states=READONLY_STATES)
-    amount = fields.Float(u'优惠后金额', compute=_compute_all_amount, states=READONLY_STATES)
+    amount = fields.Float(u'优惠后金额', compute=_compute_all_amount, store=True,readonly=True)
     payment = fields.Float(u'本次付款', states=READONLY_STATES)
     bank_account_id = fields.Many2one('bank.account', u'结算账户', default='(空)')
-    debt = fields.Float(u'本次欠款', compute=_compute_all_amount, copy=False)
+    debt = fields.Float(u'本次欠款', compute=_compute_all_amount, copy=False, store=True,readonly=True)
     cost_line_ids = fields.One2many('cost.line', 'buy_id', u'采购费用', copy=False)
     state = fields.Selection(BUY_RECEIPT_STATES, u'付款状态', default='draft', readonly=True, help=u"采购入库单的状态", select=True, copy=False)
 
@@ -389,13 +389,13 @@ class buy_receipt_line(models.Model):
         self.subtotal = amount + tax_amt
 
     spec = fields.Char(u'属性')
-    price_taxed = fields.Float(u'含税单价', compute=_compute_all_amount)
+    price_taxed = fields.Float(u'含税单价', compute=_compute_all_amount, store=True,readonly=True)
     discount_rate = fields.Float(u'折扣率%')
-    discount = fields.Float(u'折扣额', compute=_compute_all_amount)
-    amount = fields.Float(u'购货金额', compute=_compute_all_amount)
+    discount = fields.Float(u'折扣额', compute=_compute_all_amount, store=True,readonly=True)
+    amount = fields.Float(u'购货金额', compute=_compute_all_amount, store=True,readonly=True)
     tax_rate = fields.Float(u'税率(%)', default=17.0)
-    tax_amount = fields.Float(u'税额', compute=_compute_all_amount)
-    subtotal = fields.Float(u'价税合计', compute=_compute_all_amount)
+    tax_amount = fields.Float(u'税额', compute=_compute_all_amount, store=True,readonly=True)
+    subtotal = fields.Float(u'价税合计', compute=_compute_all_amount, store=True,readonly=True)
     share_cost = fields.Float(u'采购费用')
 
 class cost_line(models.Model):
