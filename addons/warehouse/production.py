@@ -9,6 +9,7 @@ from openerp import models, fields, api
 
 class wh_assembly(models.Model):
     _name = 'wh.assembly'
+    _order = 'date DESC, id DESC'
 
     _inherits = {
         'wh.move': 'move_id',
@@ -18,7 +19,6 @@ class wh_assembly(models.Model):
     bom_id = fields.Many2one('wh.bom', u'模板', domain=[('type', '=', 'assembly')], context={'type': 'assembly'})
     fee = fields.Float(u'组装费用', digits_compute=dp.get_precision('Accounting'))
 
-    @api.multi
     def apportion_cost(self, subtotal):
         for assembly in self:
             if not assembly.line_in_ids:
@@ -47,7 +47,6 @@ class wh_assembly(models.Model):
 
         return True
 
-    @api.multi
     def update_parent_price(self):
         for assembly in self:
             subtotal = sum(child.subtotal for child in assembly.line_out_ids) + assembly.fee
@@ -139,7 +138,6 @@ class wh_assembly(models.Model):
                     'target': 'new',
                 }
 
-    @api.multi
     def save_bom(self, name=''):
         for assembly in self:
             line_parent_ids = [[0, False, {
@@ -172,6 +170,7 @@ class wh_assembly(models.Model):
 
 class wh_disassembly(models.Model):
     _name = 'wh.disassembly'
+    _order = 'date DESC, id DESC'
 
     _inherits = {
         'wh.move': 'move_id',
@@ -181,7 +180,6 @@ class wh_disassembly(models.Model):
     bom_id = fields.Many2one('wh.bom', u'模板', domain=[('type', '=', 'disassembly')], context={'type': 'disassembly'})
     fee = fields.Float(u'拆卸费用', digits_compute=dp.get_precision('Accounting'))
 
-    @api.multi
     def apportion_cost(self, subtotal):
         for assembly in self:
             if not assembly.line_in_ids:
@@ -210,7 +208,6 @@ class wh_disassembly(models.Model):
 
         return True
 
-    @api.multi
     def update_child_price(self):
         for assembly in self:
             subtotal = sum(child.subtotal for child in assembly.line_out_ids) + assembly.fee
@@ -300,7 +297,6 @@ class wh_disassembly(models.Model):
                     'target': 'new',
                 }
 
-    @api.multi
     def save_bom(self, name=''):
         for disassembly in self:
             line_child_ids = [[0, False, {

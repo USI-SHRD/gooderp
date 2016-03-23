@@ -5,7 +5,7 @@
             <field name='name'>wh.inventory.tree</field>
             <field name='model'>wh.inventory</field>
             <field name='arch' type='xml'>
-                <tree string='盘点单'>
+                <tree string='盘点单' colors='blue:state in ("draft", "query");red:state == "confirmed"'>
                     <field name='name' />
                     <field name='date' />
                     <field name='warehouse_id' />

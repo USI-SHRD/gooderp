@@ -8,6 +8,7 @@ from openerp import models, fields, api
 
 class wh_out(models.Model):
     _name = 'wh.out'
+    _order = 'date DESC, id DESC'
 
     _inherits = {
         'wh.move': 'move_id',
@@ -51,6 +52,7 @@ class wh_out(models.Model):
 
 class wh_in(models.Model):
     _name = 'wh.in'
+    _order = 'date DESC, id DESC'
 
     _inherits = {
         'wh.move': 'move_id',
@@ -97,6 +99,7 @@ class wh_in(models.Model):
 
 class wh_internal(osv.osv):
     _name = 'wh.internal'
+    _order = 'date DESC, id DESC'
 
     _inherits = {
         'wh.move': 'move_id',
@@ -124,9 +127,6 @@ class wh_internal(osv.osv):
     @api.depends('line_out_ids.subtotal')
     def _get_amount_total(self):
         self.amount_total = sum(line.subtotal for line in self.line_out_ids)
-
-    def get_move_origin(self, vals):
-        return self._name + '.' + vals.get('type')
 
     @api.model
     @create_name

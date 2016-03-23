@@ -31,7 +31,6 @@ class wh_move(models.Model):
 
         return super(wh_move, self).unlink()
 
-    @api.multi
     def prev_approve_order(self):
         for order in self:
             if not order.line_out_ids and not order.line_in_ids:
@@ -50,7 +49,6 @@ class wh_move(models.Model):
                 'state': 'done',
             })
 
-    @api.multi
     def prev_cancel_approved_order(self):
         pass
 

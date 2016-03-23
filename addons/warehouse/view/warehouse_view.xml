@@ -47,7 +47,7 @@
                     <field name='using_batch' invisible='1' />
                     <field name='uom_id' required='1' />
                     <field name='lot_qty' invisible='1' />
-                    <field name='lot_id' attrs="{'readonly': [('using_batch', '=', False)], 'required': [('using_batch', '=', True)]}" domain="[('goods_id', '=', goods_id), ('state', '=', 'done'), ('lot', '!=', False), ('qty_remaining', '>', 0)]" context="{'lot': True}" options="{'no_open': True, 'no_create': True}" />
+                    <field name='lot_id' attrs="{'readonly': [('using_batch', '=', False)], 'required': [('using_batch', '=', True)]}" domain="[('goods_id', '=', goods_id), ('state', '=', 'done'), ('lot', '!=', False), ('qty_remaining', '>', 0), ('warehouse_dest_id', '=', warehouse_id)]" context="{'lot': True}" options="{'no_open': True, 'no_create': True}" />
                     <field name='goods_qty' widget='float_limit' options="{'field': 'lot_qty'}" />
                     <field name='warehouse_id' string='仓库' required='1' />
 
@@ -66,8 +66,8 @@
                 <tree string='库存调拨' editable='bottom'>
                     <field name='goods_id' required='1' />
                     <field name='uom_id' required='1' />
-                    <field name='using_batch' invisible='0' />
-                    <field name='force_batch_one' invisible='0' />
+                    <field name='using_batch' invisible='1' />
+                    <field name='force_batch_one' invisible='1' />
 
                     <field name='lot' attrs="{'readonly': [('using_batch', '=', False)], 'required': [('using_batch', '=', True)]}" />
                     <field name='goods_qty' attrs="{'readonly': [('force_batch_one', '=', True)]}" sum='1' />
@@ -165,7 +165,7 @@
             <field name='name'>wh.out.tree</field>
             <field name='model'>wh.out</field>
             <field name='arch' type='xml'>
-                <tree string='出库单' >
+                <tree string='出库单' colors='blue:state == "draft"'>
                     <field name='name' />
                     <field name='date' />
                     <field name='type' />
@@ -173,6 +173,7 @@
                     <field name='partner_id' string='客户' />
                     <field name='create_uid' string='制单人' />
                     <field name='approve_uid' />
+                    <field name='state' />
                     <field name='note' />
                 </tree>
             </field>
@@ -238,7 +239,7 @@
             <field name='name'>wh.in.tree</field>
             <field name='model'>wh.in</field>
             <field name='arch' type='xml'>
-                <tree string='入库单' >
+                <tree string='入库单' colors='blue:state == "draft"'>
                     <field name='name' />
                     <field name='date' />
                     <field name='type' />
@@ -246,6 +247,7 @@
                     <field name='partner_id' string='供应商' />
                     <field name='create_uid' string='制单人' />
                     <field name='approve_uid' />
+                    <field name='state' />
                     <field name='note' />
                 </tree>
             </field>
@@ -306,12 +308,13 @@
             <field name='name'>wh.internal.tree</field>
             <field name='model'>wh.internal</field>
             <field name='arch' type='xml'>
-                <tree string='调拨单' >
+                <tree string='调拨单' colors='blue:state == "draft"'>
                     <field name='name' />
                     <field name='date' />
                     <field name='amount_total' />
                     <field name='create_uid' string='制单人' />
                     <field name='approve_uid' />
+                    <field name='state' />
                     <field name='note' />
                 </tree>
             </field>
