@@ -79,17 +79,9 @@ class report_stock_transceive(models.Model):
             'warehouse': key[2],
         }
 
-    def get_record_value(self, record, sql_type='out'):
+    def get_default_value_by_record(self, record, sql_type='out'):
         return {
             'id': record.get('id'),
-            'goods_qty_begain': 0,
-            'cost_begain': 0,
-            'goods_qty_end': 0,
-            'cost_end': 0,
-            'goods_qty_out': 0,
-            'cost_out': 0,
-            'goods_qty_in': 0,
-            'cost_in': 0,
         }
 
     def update_record_value(self, value, record, sql_type='out'):
@@ -110,7 +102,7 @@ class report_stock_transceive(models.Model):
         for record in records:
             record_key = self.get_record_key(record, sql_type=sql_type)
             if not res.get(record_key):
-                res[record_key] = {'id': record.get('id')}
+                res[record_key] = self.get_default_value_by_record(record, sql_type=sql_type)
 
             self.update_record_value(res[record_key], record, sql_type=sql_type)
 
