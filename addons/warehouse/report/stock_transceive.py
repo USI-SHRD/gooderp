@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import openerp.addons.decimal_precision as dp
-from openerp import models, fields, api
+from openerp import models, fields
 
 
 class report_stock_transceive(models.Model):
@@ -106,7 +106,6 @@ class report_stock_transceive(models.Model):
 
             self.update_record_value(res[record_key], record, sql_type=sql_type)
 
-    @api.model
     def collect_data_by_sql(self, sql_type='out'):
         out_collection = self.execute_sql(sql_type='out')
         in_collection = self.execute_sql(sql_type='in')

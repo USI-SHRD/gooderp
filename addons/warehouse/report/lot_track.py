@@ -75,6 +75,10 @@ class report_lot_track(models.Model):
             'goods': context.get('goods') or '',
         }
 
+    def _compute_order(self, result, order):
+        order = order or 'goods DESC'
+        return super(report_lot_track, self)._compute_order(result, order)
+
     def collect_data_by_sql(self, sql_type='out'):
         out_collection = self.execute_sql(sql_type='out')
         in_collection = self.execute_sql(sql_type='in')

@@ -30,19 +30,12 @@ def create_origin(method):
     return func
 
 
-def inherits_after(res_back=True, collect_before_res=False):
+def inherits_after(res_back=True):
     def wrapper(method):
         @functools.wraps(method)
         def func(self, *args, **kwargs):
 
             res_before = execute_inherits_func(self, method.func_name, args, kwargs)
-
-            # if collect_before_res:
-            #     if not kwargs.get('context'):
-            #         kwargs['context'] = {}
-
-            #     kwargs.get('context').update({'res_before': res_before})
-
             res_after = method(self, *args, **kwargs)
 
             if res_back:

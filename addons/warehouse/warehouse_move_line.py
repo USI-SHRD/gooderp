@@ -188,6 +188,7 @@ class wh_move_line(models.Model):
     def onchange_warehouse_id(self):
         self.compute_suggested_cost()
         self.compute_lot_domain()
+        self.compute_lot_compatible()
 
         return {'domain': {'lot_id': self.compute_lot_domain()}}
 
@@ -201,7 +202,6 @@ class wh_move_line(models.Model):
     def onchange_lot_id(self):
         if self.lot_id:
             self.warehouse_id = self.lot_id.warehouse_dest_id
-            # self.goods_qty = self.lot_id.qty_remaining
             self.lot_qty = self.lot_id.qty_remaining
 
             if self.env.context.get('type') == 'internal':

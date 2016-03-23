@@ -43,6 +43,9 @@ class wh_out(models.Model):
     def _get_amount_total(self):
         self.amount_total = sum(line.subtotal for line in self.line_out_ids)
 
+    def get_move_origin(self, vals):
+        return self._name + '.' + vals.get('type')
+
     @api.model
     @create_name
     @create_origin
