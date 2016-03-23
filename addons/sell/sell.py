@@ -217,7 +217,7 @@ class sell_delivery(models.Model):
     bank_account_id = fields.Many2one('bank.account', u'结算账户', default=u'(空)')
     debt = fields.Float(u'本次欠款', compute=_compute_all_amount, copy=False)
     total_debt = fields.Float(u'总欠款', compute=_compute_all_amount, copy=False)
-    total_cost = fields.Float(u'销售费用', copy=False)
+    cost_line_ids = fields.One2many('cost.line', 'sell_id', u'销售费用', copy=False)
     state = fields.Selection(SELL_DELIVERY_STATES, u'收款状态', default='draft', readonly=True, help=u"销售发货单的状态", select=True, copy=False)
 
     @api.model
@@ -273,11 +273,12 @@ class sell_delivery(models.Model):
         partner.write({'receivable': self.debt + self.total_debt})
         self.write({'approve_uid': self._uid})
 
-        # 生成源单
-        self.env['money.invoice'].create({
+        # 出库单生成源单
+        categ = self.env['core.category'].search([('type', '=', 'income')])
+        source_id = self.env['money.invoice'].create({
                             'name': self.name,
                             'partner_id': self.partner_id.id,
-                            'business_type': u'普通销售',
+                            'category_id': categ.id,
                             'date': fields.Date.context_today(self),
                             'amount': self.debt,
                             'reconciled': 0.0,
@@ -285,11 +286,58 @@ class sell_delivery(models.Model):
                             'date_due': self.date_due,
                             'state': 'done',
                         })
+        # 销售费用产生源单
+        if sum(cost_line.amount for cost_line in self.cost_line_ids) > 0:
+            categ = self.env['core.category'].search([('type', '=', 'attribute')])
+            for line in self.cost_line_ids:
+                self.env['money.invoice'].create({
+                            'name': self.name,
+                            'partner_id': self.partner_id.id,
+                            'category_id': categ.id,
+                            'date': fields.Date.context_today(self),
+                            'amount': line.amount,
+                            'reconciled': 0.0,
+                            'to_reconcile': line.amount,
+                            'date_due': self.date_due,
+                            'state': 'done',
+                        })
+        # 生成收款单
+        money_lines = []
+        source_lines = []
+        money_lines.append({
+            'bank_id': self.bank_account_id.id,
+            'amount': self.receipt,
+        })
+        source_lines.append({
+            'name': source_id.id,
+            'category_id': categ.id,
+            'date': source_id.date,
+            'amount': self.amount,
+            'reconciled': 0.0,
+            'to_reconcile': self.amount,
+            'this_reconcile': self.receipt,
+        })
+
+        self.env['money.order'].create({
+                            'partner_id': self.partner_id.id,
+                            'date': fields.Date.context_today(self),
+                            'line_ids': [(0, 0, line) for line in money_lines],
+                            'source_ids': [(0, 0, line) for line in source_lines],
+                            'type': 'get',
+                            'amount': self.amount,
+                            'reconciled': self.receipt,
+                            'to_reconcile': self.debt,
+                            'state': 'done',
+                        })
         return True
 
     @api.one
     def sell_out_refuse(self):
         '''反审核销售发货单'''
+        for mi in self.env['money.invoice'].search([('name', '=', self.name), ('reconciled', '>', 0)]):
+            print '已核销金额：',mi.reconciled
+        if self.env['money.invoice'].search([('name', '=', self.name), ('reconciled', '>', 0)]):
+            raise except_orm(u'警告！', u'该发货单有已核销金额，不能反审核！')
         self.write({'state': 'draft'})
         return True
 
