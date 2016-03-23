@@ -41,6 +41,6 @@ class report_stock_transceive_collect_wizard(models.TransientModel):
             'type': 'ir.actions.act_window',
             'res_model': 'report.stock.transceive.collect',
             'view_mode': 'tree',
-            'name': u'商品收发明细表',
+            'name': u'商品收发汇总表',
             'context': self.read(['date_start', 'date_end', 'warehouse', 'goods'])[0],
         }
