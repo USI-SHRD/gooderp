@@ -49,7 +49,7 @@ class sell_order(models.Model):
     benefit_rate = fields.Float(u'优惠率(%)', states=READONLY_STATES)
     benefit_amount = fields.Float(string=u'优惠金额', store=True, states=READONLY_STATES,
             compute='_compute_amount', track_visibility='always')
-    amount = fields.Float(string=u'优惠后金额', store=True, states=READONLY_STATES,
+    amount = fields.Float(string=u'优惠后金额', store=True,readonly=True,
             compute='_compute_amount', track_visibility='always')
     approve_uid = fields.Many2one('res.users', u'审核人', copy=False)
     state = fields.Selection(SELL_ORDER_STATES, u'订单状态', readonly=True, help=u"销售订单的状态", select=True, copy=False, default='draft')
@@ -175,18 +175,18 @@ class sell_order_line(models.Model):
     order_id = fields.Many2one('sell.order', u'订单编号', select=True, required=True, ondelete='cascade')
     goods_id = fields.Many2one('goods', u'商品')
     spec = fields.Char(u'属性') #产品的属性，选择产品时自动从产品管理表获取
-    uom_id = fields.Many2one('uom', u'单位', compute=_compute_uom_id)
+    uom_id = fields.Many2one('uom', u'单位', compute=_compute_uom_id, store=True,readonly=True)
     warehouse_id = fields.Many2one('warehouse', u'调出仓库', default=_default_warehouse)
     warehouse_dest_id = fields.Many2one('warehouse', u'调入仓库', default=_default_warehouse_dest)
     quantity = fields.Float(u'数量', default=1)
     price = fields.Float(u'销售单价')
-    price_taxed = fields.Float(u'含税单价', compute=_compute_all_amount)
+    price_taxed = fields.Float(u'含税单价', compute=_compute_all_amount, store=True,readonly=True)
     discount_rate = fields.Float(u'折扣率%')
-    discount_amount = fields.Float(u'折扣额', compute=_compute_all_amount)
-    amount = fields.Float(u'金额', compute=_compute_all_amount)
+    discount_amount = fields.Float(u'折扣额', compute=_compute_all_amount, store=True,readonly=True)
+    amount = fields.Float(u'金额', compute=_compute_all_amount, store=True,readonly=True)
     tax_rate = fields.Float(u'税率(%)', default=17.0)
-    tax_amount = fields.Float(u'税额', compute=_compute_all_amount)
-    subtotal = fields.Float(u'价税合计', compute=_compute_all_amount)
+    tax_amount = fields.Float(u'税额', compute=_compute_all_amount, store=True,readonly=True)
+    subtotal = fields.Float(u'价税合计', compute=_compute_all_amount, store=True,readonly=True)
     line_note = fields.Char(u'备注')
 
 class sell_delivery(models.Model):
@@ -211,12 +211,12 @@ class sell_delivery(models.Model):
     date_due = fields.Date(u'到期日期', copy=False)
     benefit_rate = fields.Float(u'优惠率(%)', states=READONLY_STATES)
     benefit_amount = fields.Float(u'优惠金额', compute=_compute_all_amount, states=READONLY_STATES)
-    amount = fields.Float(u'优惠后金额', compute=_compute_all_amount, states=READONLY_STATES)
+    amount = fields.Float(u'优惠后金额', compute=_compute_all_amount, store=True,readonly=True)
     partner_cost = fields.Float(u'客户承担费用')
     receipt = fields.Float(u'本次收款', states=READONLY_STATES)
     bank_account_id = fields.Many2one('bank.account', u'结算账户', default=u'(空)')
-    debt = fields.Float(u'本次欠款', compute=_compute_all_amount, copy=False)
-    total_debt = fields.Float(u'总欠款', compute=_compute_all_amount, copy=False)
+    debt = fields.Float(u'本次欠款', compute=_compute_all_amount, copy=False, store=True,readonly=True)
+    total_debt = fields.Float(u'总欠款', compute=_compute_all_amount, copy=False, store=True,readonly=True)
     cost_line_ids = fields.One2many('cost.line', 'sell_id', u'销售费用', copy=False)
     state = fields.Selection(SELL_DELIVERY_STATES, u'收款状态', default='draft', readonly=True, help=u"销售发货单的状态", select=True, copy=False)
 
@@ -360,11 +360,11 @@ class sell_delivery_line(models.Model):
         self.subtotal = amount + tax_amt
 
     spec = fields.Char(u'属性')
-    price_taxed = fields.Float(u'含税单价', compute=_compute_all_amount)
+    price_taxed = fields.Float(u'含税单价', compute=_compute_all_amount, store=True,readonly=True)
     discount_rate = fields.Float(u'折扣率%')
-    discount_amount = fields.Float(u'折扣额', compute=_compute_all_amount)
-    amount = fields.Float(u'销售金额', compute=_compute_all_amount)
+    discount_amount = fields.Float(u'折扣额', compute=_compute_all_amount, store=True,readonly=True)
+    amount = fields.Float(u'销售金额', compute=_compute_all_amount, store=True,readonly=True)
     tax_rate = fields.Float(u'税率(%)', default=17.0)
-    tax_amount = fields.Float(u'税额', compute=_compute_all_amount)
-    subtotal = fields.Float(u'价税合计', compute=_compute_all_amount)
+    tax_amount = fields.Float(u'税额', compute=_compute_all_amount, store=True,readonly=True)
+    subtotal = fields.Float(u'价税合计', compute=_compute_all_amount, store=True,readonly=True)
     origin = fields.Char(u'源单号')

@@ -19,7 +19,7 @@ class attribute(models.Model):
     def _compute_name(self):
         self.name = ' '.join([value.value_id.name for value in self.value_ids])
 
-    name = fields.Char(u'名称', compute='_compute_name', store=True)
+    name = fields.Char(u'名称', compute='_compute_name', store=True,readonly=True)
     goods_id = fields.Many2one('goods', u'商品')
     value_ids = fields.One2many('attribute.value', 'attribute_id', string=u'属性')
 

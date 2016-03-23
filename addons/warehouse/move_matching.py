@@ -28,7 +28,7 @@ class wh_move_line(models.Model):
     _inherit = 'wh.move.line'
 
     qty_remaining = fields.Float(compute='_get_qty_remaining', string=u'剩余数量',
-        digits_compute=dp.get_precision('Goods Quantity'), index=True, store=True)
+        digits_compute=dp.get_precision('Goods Quantity'), index=True, store=True,readonly=True)
 
     matching_in_ids = fields.One2many('wh.move.matching', 'line_in_id', string=u'关联的入库')
     matching_out_ids = fields.One2many('wh.move.matching', 'line_out_id', string=u'关联的出库')

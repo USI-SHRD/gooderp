@@ -53,7 +53,7 @@ class other_money_order(models.Model):
     partner_id = fields.Many2one('partner', string=u'往来单位', readonly=True, states={'draft': [('readonly', False)]})
     date = fields.Date(string=u'单据日期', default=lambda self: fields.Date.context_today(self), readonly=True, states={'draft': [('readonly', False)]})
     name = fields.Char(string=u'单据编号', copy=False, readonly=True, default='/')
-    total_amount = fields.Float(string=u'金额', compute='_compute_total_amount', readonly=True)
+    total_amount = fields.Float(string=u'金额', compute='_compute_total_amount', store=True, readonly=True)
     bank_id = fields.Many2one('bank.account', string=u'结算账户',required=True, readonly=True, states={'draft': [('readonly', False)]})
     line_ids = fields.One2many('other.money.order.line', 'other_money_id', string=u'收支单行', readonly=True, states={'draft': [('readonly', False)]})
     type = fields.Selection(TYPE_SELECTION, string=u'类型', default=lambda self: self._context.get('type'), readonly=True, states={'draft': [('readonly', False)]})
