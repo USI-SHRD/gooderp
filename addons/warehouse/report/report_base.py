@@ -26,12 +26,7 @@ class report_base(models.Model):
         return ''
 
     def get_context(self, sql_type='out', context=None):
-        return {
-            'date_start': context.get('date_start') or '',
-            'date_end': context.get('date_end') or '',
-            'warehouse': context.get('warehouse') or '',
-            'goods': context.get('goods') or '',
-        }
+        return {}
 
     @api.model
     def execute_sql(self, sql_type='out'):
@@ -65,27 +60,27 @@ class report_base(models.Model):
 
     def _process_domain(self, result, domain):
         if domain and len(domain) == 3:
-            field, operator, value = domain
+            field, opto, value = domain
 
             compute_operator = {
                 'ilike': lambda field, value: str(value).lower() in str(field).lower(),
                 'like': lambda field, value: str(value) in str(field),
                 'not ilike': lambda field, value: str(value).lower() not in str(field).lower(),
                 'not like': lambda field, value: str(value) not in str(field),
-                '=': lambda field, value: value == field,
-                '!=': lambda field, value: value != field,
-                '>': lambda field, value: value < field,
-                '<': lambda field, value: value > field,
-                '>=': lambda field, value: value <= field,
-                '<=': lambda field, value: value >= field,
+                '=': operator.eq,
+                '!=': operator.ne,
+                '>': operator.gt,
+                '<': operator.lt,
+                '>=': operator.ge,
+                '<=': operator.le,
             }
 
-            operator = operator.lower()
+            opto = opto.lower()
             if field in result:
-                if operator in compute_operator.iterkeys():
-                    return compute_operator.get(operator)(result.get(field), value)
+                if opto in compute_operator.iterkeys():
+                    return compute_operator.get(opto)(result.get(field), value)
 
-                raise osv.except_osv(u'错误', u'未添加的domain条件%s' % domain)
+                raise osv.except_osv(u'错误', u'暂时无法解析的domain条件%s，请联系管理员' % domain)
 
         raise osv.except_osv(u'错误', u'不可识别的domain条件，请检查domain"%s"是否正确' % domain)
 
