@@ -2,14 +2,14 @@
 <openerp>
     <data>
         <!-- 收入类型：销售 -->
-        <!-- <record id="core_category_sale" model="core.category">
+        <record id="core_category_sale" model="core.category">
             <field name="name">销售</field>
             <field name="type">income</field>
-        </record> -->
+        </record>
         <!-- 支出类型：采购 -->
-        <!-- <record id="core_category_purchase" model="core.category">
+        <record id="core_category_purchase" model="core.category">
             <field name="name">采购</field>
             <field name="type">expense</field>
-        </record> -->
+        </record>
     </data>
 </openerp>

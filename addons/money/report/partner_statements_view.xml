@@ -1,0 +1,53 @@
+<?xml version="1.0"?>
+<openerp>
+    <data>
+        <!--客户对账单tree-->
+    	<record id="partner_statements_report_tree" model="ir.ui.view">
+            <field name="name">partner.statements.report.tree</field>
+            <field name="model">partner.statements.report</field>
+            <field name="arch" type="xml">
+                <tree string="Partner Statements Report">
+                	<field name="partner_id"/>
+                	<field name="date"/>
+                    <field name="name"/>
+                    <field name="category_id"/>
+                    <field name="amount"/>
+                    <field name="discount_amount"/>
+                    <field name="cost"/>
+                    <field name="real_amount"/>
+                    <field name="balance_amount"/>
+                </tree>
+            </field>
+        </record>
+
+        <!--客户对账单graph-->
+        <record id='partner_statements_report_graph' model='ir.ui.view'>
+            <field name="name">partner.statements.report.graph</field>
+            <field name="model">partner.statements.report</field>
+            <field name='arch' type='xml'>
+                <graph type='pivot'>
+                    <field name='partner_id' type='row' />
+                    <field name='date' type='row' />
+                    <field name='amount' type='col' />
+                    <!-- <field name='cost' type='col' />
+                    <field name='real_amount' type='col' />
+                    <field name='balance_amount' type='col' /> -->
+                </graph>
+            </field>
+        </record>
+        
+        <!-- 客户对账单 action -->
+        <record id="partner_statements_action" model="ir.actions.act_window">
+            <field name="name">客户对账单</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">partner.statements.report</field>
+            <field name="view_mode">graph,tree</field>
+            <field name='view_id' ref='partner_statements_report_graph' />
+        </record>
+
+		<!-- 客户对账单 -->
+		<menuitem id="menu_money_report" name="报表" parent="menu_money_root" sequence="2"/>
+        <menuitem id="report_partner_statements_action" action="partner_statements_action" parent="menu_money_report" sequence="1"/>
+	</data>
+</openerp>
+	
