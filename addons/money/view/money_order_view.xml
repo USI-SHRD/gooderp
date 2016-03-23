@@ -59,7 +59,6 @@
                     <label string="选择源单"/>
                     <field name="source_ids">
                     	<tree string="Source Order Lines" editable="bottom">
-                    		<field name="state" invisible="1"/>
                     		<field name="name" readonly='1'/>
                     		<field name="category_id" readonly='1'/>
                             <field name="date" readonly='1'/>
@@ -145,6 +144,7 @@
             <field name="model">money.invoice</field>
             <field name="arch" type="xml">
                 <tree string="Source Order Line" editable="bottom">
+					<field name="state" invisible="1"/>
                     <field name="name"/>
                     <field name="partner_id"/>
             		<field name="category_id"/>

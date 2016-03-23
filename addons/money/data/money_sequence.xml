@@ -61,14 +61,14 @@
             <field name="padding">5</field>
         </record>
 
-        <!--  核销单序列号 -->
+        <!--  核销单编号 -->
         <record id="seq_type_reconcile_order" model="ir.sequence.type">
-            <field name="name">Reconcile Order</field>
-            <field name="code">reconcile_order</field>
+            <field name="name">核销单</field>
+            <field name="code">reconcile.order</field>
         </record>
         <record id="seq_reconcile_order" model="ir.sequence">
-            <field name="name">Reconcile Order</field>
-            <field name="code">reconcile_order</field>
+            <field name="name">核销单</field>
+            <field name="code">reconcile.order</field>
             <field name="prefix">RO%(year)s/</field>
             <field name="padding">5</field>
         </record>

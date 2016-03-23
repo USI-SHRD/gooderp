@@ -13,5 +13,6 @@
         'view/reconcile_order_view.xml',
         'data/money_sequence.xml',
         'data/money_data.xml',
+        'report/partner_statements_view.xml',
         ]
 }
