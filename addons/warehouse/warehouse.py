@@ -24,7 +24,6 @@ class warehouse(models.Model):
     active = fields.Boolean(u'有效', default=True)
 
     # 使用SQL来取得指定仓库情况下的库存数量
-    @api.multi
     def get_stock_qty(self):
         for warehouse in self:
             self.env.cr.execute('''
@@ -54,8 +53,6 @@ class warehouse(models.Model):
         return super(warehouse, self).name_search(name=name, args=args,
             operator=operator, limit=limit)
 
-    @api.model
-    # TODO 返回值改变
     def get_warehouse_by_type(self, _type):
         if not _type or _type not in map(lambda _type: _type[0], self.WAREHOUSE_TYPE):
             raise ValueError(u'错误，仓库类型"%s"不在预先定义的type之中，请联系管理员' % _type)

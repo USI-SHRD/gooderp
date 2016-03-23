@@ -22,6 +22,19 @@ class wh_move_line(models.Model):
         ('done', u'已审核'),
     ]
 
+    ORIGIN_EXPLAIN = {
+        ('wh.assembly', 'out'): u'组装单子件',
+        ('wh.assembly', 'in'): u'组装单组合件',
+        ('wh.disassembly', 'out'): u'组装单组合件',
+        ('wh.disassembly', 'in'): u'组装单子件',
+        ('wh.internal', True): u'调拨出库',
+        ('wh.internal', False): u'调拨入库',
+        'wh.out.losses': u'盘亏',
+        'wh.out.others': u'其他出库',
+        'wh.in.overage': u'盘盈',
+        'wh.in.others': u'其他入库',
+    }
+
     @api.model
     def _get_default_warehouse(self):
         if self.env.context.get('warehouse_type'):
@@ -57,6 +70,17 @@ class wh_move_line(models.Model):
     subtotal = fields.Float(u'金额', digits_compute=dp.get_precision('Accounting'))
     note = fields.Text(u'备注')
 
+    def get_origin_explain(self):
+        self.ensure_one()
+        if self.move_id.origin in ('wh.assembly', 'wh.disassembly'):
+            return self.ORIGIN_EXPLAIN.get((self.move_id.origin, self.type))
+        elif self.move_id.origin in ('wh.out.losses', 'wh.out.others', 'wh.in.overage', 'wh.in.others'):
+            return self.ORIGIN_EXPLAIN.get(self.move_id.origin)
+        elif self.move_id.origin == 'wh.internal':
+            return self.ORIGIN_EXPLAIN.get((self.move_id.origin, self.env.context.get('internal_out', False)))
+
+        return ''
+
     @api.model
     def default_get(self, fields):
         res = super(wh_move_line, self).default_get(fields)
@@ -68,7 +92,6 @@ class wh_move_line(models.Model):
 
         return res
 
-    @api.multi
     def get_real_price(self):
         for line in self:
             return safe_division(line.subtotal, line.goods_qty)
@@ -78,19 +101,17 @@ class wh_move_line(models.Model):
         res = []
         for line in self:
             if self.env.context.get('lot'):
-                res.append((line.id, '%s-%s' % (line.lot, line.qty_remaining)))
+                res.append((line.id, '%s-%s-%s' % (line.lot, line.warehouse_dest_id.name, line.qty_remaining)))
             else:
                 res.append((line.id, '%s-%s->%s(%s, %s%s)' %
                     (line.move_id.name, line.warehouse_id.name, line.warehouse_dest_id.name,
                         line.goods_id.name, str(line.goods_qty), line.uom_id.name)))
         return res
 
-    @api.one
     def check_availability(self):
         if self.warehouse_dest_id == self.warehouse_id:
             raise osv.except_osv(u'错误', u'调出仓库不可以和调入仓库一样')
 
-    @api.multi
     def prev_action_done(self):
         pass
 
@@ -104,11 +125,9 @@ class wh_move_line(models.Model):
                 'date': fields.Datetime.now(self),
             })
 
-    @api.multi
     def check_cancel(self):
         pass
 
-    @api.multi
     def prev_action_cancel(self):
         pass
 
@@ -122,7 +141,6 @@ class wh_move_line(models.Model):
                 'date': False,
             })
 
-    @api.model
     def _get_subtotal_util(self, goods_qty, price):
         return goods_qty * price
 
@@ -134,7 +152,6 @@ class wh_move_line(models.Model):
         if self.goods_id and self.lot_id and self.lot_id.goods_id != self.goods_id:
             self.lot_id = False
 
-    @api.multi
     def compute_lot_domain(self):
         lot_domain = [('goods_id', '=', self.goods_id.id), ('state', '=', 'done'),
             ('lot', '!=', False), ('qty_remaining', '>', 0)]
@@ -146,7 +163,7 @@ class wh_move_line(models.Model):
 
     @api.one
     def compute_suggested_cost(self):
-        if self.env.context.get('get_cost') and self.goods_id and self.warehouse_id and self.goods_qty:
+        if self.env.context.get('type') == 'out' and self.goods_id and self.warehouse_id and self.goods_qty:
             subtotal, price = self.goods_id.get_suggested_cost_by_warehouse(self.warehouse_id, self.goods_qty)
 
             self.price = price
@@ -171,6 +188,7 @@ class wh_move_line(models.Model):
     def onchange_warehouse_id(self):
         self.compute_suggested_cost()
         self.compute_lot_domain()
+        self.compute_lot_compatible()
 
         return {'domain': {'lot_id': self.compute_lot_domain()}}
 
@@ -184,8 +202,10 @@ class wh_move_line(models.Model):
     def onchange_lot_id(self):
         if self.lot_id:
             self.warehouse_id = self.lot_id.warehouse_dest_id
-            self.goods_qty = self.lot_id.qty_remaining
             self.lot_qty = self.lot_id.qty_remaining
+
+            if self.env.context.get('type') == 'internal':
+                self.lot = self.lot_id.lot
 
     @api.one
     @api.onchange('price')

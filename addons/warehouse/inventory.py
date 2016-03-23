@@ -12,6 +12,7 @@ from openerp import api
 
 class wh_inventory(models.Model):
     _name = 'wh.inventory'
+    _order = 'date DESC, id DESC'
 
     INVENTORY_STATE = [
         ('draft', u'草稿'),
@@ -52,7 +53,6 @@ class wh_inventory(models.Model):
 
         return super(wh_inventory, self).unlink()
 
-    @api.multi
     def delete_confirmed_wh(self):
         for inventory in self:
             if inventory.state == 'confirmed':
@@ -64,7 +64,6 @@ class wh_inventory(models.Model):
 
         return True
 
-    @api.multi
     def check_done(self):
         for inventory in self:
             if inventory.state == 'confirmed' and \
@@ -95,11 +94,9 @@ class wh_inventory(models.Model):
                 'res_id': inventory.in_id.id,
             }
 
-    @api.multi
     def delete_line(self):
         self.line_ids.unlink()
 
-    @api.model
     def create_losses_out(self, inventory, out_line):
         out_vals = {
             'type': 'losses',
@@ -112,7 +109,6 @@ class wh_inventory(models.Model):
         out_id = self.env['wh.out'].create(out_vals)
         inventory.out_id = out_id
 
-    @api.model
     def create_overage_in(self, inventory, in_line):
         in_vals = {
             'type': 'overage',
@@ -146,7 +142,6 @@ class wh_inventory(models.Model):
 
         return True
 
-    @api.multi
     def get_line_detail(self):
         for inventory in self:
             sql_text = '''
@@ -179,7 +174,6 @@ class wh_inventory(models.Model):
             inventory.env.cr.execute(sql_text % extra_text)
             return inventory.env.cr.dictfetchall()
 
-    @api.multi
     def get_zero_inventory(self, exist_goods_ids):
         for inventory in self:
             domain = inventory.goods and [('name', 'ilike', '%%%s%%' % inventory.goods)] or []
@@ -239,27 +233,21 @@ class wh_inventory_line(models.Model):
     def onchange_qty(self):
         self.difference_qty = self.inventory_qty - self.real_qty
 
-    @api.multi
     def get_move_line(self, wh_type='in', context=None):
         inventory_warehouse = self.env['warehouse'].get_warehouse_by_type('inventory')
         for inventory in self:
-            res = {
-                'warehouse_id': wh_type == 'out' and inventory.warehouse_id.id or inventory_warehouse,
-                'warehouse_dest_id': wh_type == 'in' and inventory.warehouse_id.id or inventory_warehouse,
+
+            subtotal, matching_qty = inventory.goods_id.get_suggested_cost_by_warehouse(
+                inventory.warehouse_id, abs(inventory.difference_qty))
+            return {
+                'warehouse_id': wh_type == 'out' and inventory.warehouse_id.id or inventory_warehouse.id,
+                'warehouse_dest_id': wh_type == 'in' and inventory.warehouse_id.id or inventory_warehouse.id,
                 'goods_id': inventory.goods_id.id,
                 'uom_id': inventory.uom_id.id,
-                'goods_qty': abs(inventory.difference_qty)
+                'goods_qty': abs(inventory.difference_qty),
+                'price': safe_division(subtotal, matching_qty),
+                'subtotal': subtotal,
             }
-
-            if wh_type == 'in':
-                subtotal, matching_qty = inventory.goods_id.get_suggested_cost_by_warehouse(
-                    inventory.warehouse_id, abs(inventory.difference_qty))
-                res.update({
-                        'price': safe_division(subtotal, matching_qty),
-                        'subtotal': subtotal,
-                    })
-
-            return res
 
 
 class wh_out(models.Model):
@@ -270,9 +258,7 @@ class wh_out(models.Model):
     @api.multi
     def approve_order(self):
         res = super(wh_out, self).approve_order()
-
-        # 迷之报错（可能新旧新API继承旧式API造成）
-        # self.inventory_ids.check_done()
+        self.inventory_ids.check_done()
 
         return res
 
@@ -285,8 +271,6 @@ class wh_in(models.Model):
     @api.multi
     def approve_order(self):
         res = super(wh_in, self).approve_order()
-
-        # 迷之报错（可能新旧新API继承旧式API造成）
-        # self.inventory_ids.check_done()
+        self.inventory_ids.check_done()
 
         return res

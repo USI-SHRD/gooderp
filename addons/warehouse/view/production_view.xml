@@ -57,7 +57,7 @@
             <field name='name'>wh.assembly.tree</field>
             <field name='model'>wh.assembly</field>
             <field name='arch' type='xml'>
-                <tree string='组装单' >
+                <tree string='组装单' colors='blue:state == "draft"'>
                     <field name='date' />
                     <field name='name' />
                     <field name='line_in_ids' widget='relation_sublist' options="{'field': 'goods_id'}" string='组合件' />
@@ -71,6 +71,7 @@
                     <field name='line_out_ids' widget='relation_sublist' options="{'field': 'uom_id'}" string='子件单位' />
                     <field name='line_out_ids' widget='relation_sublist' options="{'field': 'price'}" string='子件单位成本' />
                     <field name='line_out_ids' widget='relation_sublist' options="{'field': 'subtotal'}" string='子件成本' />
+                    <field name='state' />
                 </tree>
             </field>
         </record>
@@ -136,6 +137,7 @@
                                 'tree_view_ref': 'warehouse.wh_move_line_out_tree',
                                 'warehouse_dest_type': 'others',
                                 'lot': True,
+                                'type': 'out',
                             }" attrs="{'readonly': [('state', '!=', 'draft')]}" />
                         </group>
 
@@ -166,7 +168,7 @@
             <field name='name'>wh.disassembly.tree</field>
             <field name='model'>wh.disassembly</field>
             <field name='arch' type='xml'>
-                <tree string='拆卸单' >
+                <tree string='拆卸单' colors='blue:state == "draft"'>
                     <field name='date' />
                     <field name='name' />
                     <field name='line_out_ids' widget='relation_sublist' options="{'field': 'goods_id'}" string='组合件' />
@@ -180,6 +182,7 @@
                     <field name='line_in_ids' widget='relation_sublist' options="{'field': 'uom_id'}" string='子件单位' />
                     <field name='line_in_ids' widget='relation_sublist' options="{'field': 'price'}" string='子件单位成本' />
                     <field name='line_in_ids' widget='relation_sublist' options="{'field': 'subtotal'}" string='子件成本' />
+                    <field name='state' />
                 </tree>
             </field>
         </record>
@@ -216,6 +219,7 @@
                                 'tree_view_ref': 'warehouse.wh_move_line_out_tree',
                                 'warehouse_dest_type': 'others',
                                 'lot': True,
+                                'type': 'out',
                             }" attrs="{'readonly': [('state', '!=', 'draft')]}" />
                         </group>
 

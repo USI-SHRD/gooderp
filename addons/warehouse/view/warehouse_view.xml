@@ -15,10 +15,29 @@
             </field>
         </record>
 
+        <!-- 仓库 -->
+        <record id='warehouse_form' model='ir.ui.view'>
+            <field name='name'>warehouse.form</field>
+            <field name='model'>warehouse</field>
+            <field name='arch' type='xml'>
+                <form string='仓库' >
+                    <group>
+                        <group>
+                            <field name='code' />
+                        </group>
+                        <group>
+                            <field name='name' />
+                        </group>
+                    </group>
+                </form>
+            </field>
+        </record>
+
         <!-- 移库单的move -->
         <record id='wh_move_line_tree' model='ir.ui.view'>
             <field name='name'>wh.move.line.tree</field>
             <field name='model'>wh.move.line</field>
+            <field name='priority'>1</field>
             <field name='arch' type='xml'>
                 <tree string='库存调拨' >
                     <field name='goods_id' />
@@ -26,6 +45,8 @@
                     <field name='goods_qty' sum='1' />
                     <field name='warehouse_id' />
                     <field name='warehouse_dest_id' />
+                    <field name='lot' />
+                    <field name='qty_remaining' />
                     <field name='price' />
                     <field name='subtotal' sum='1' />
                     <field name='state' />
@@ -44,8 +65,8 @@
                     <field name='using_batch' invisible='1' />
                     <field name='uom_id' required='1' />
                     <field name='lot_qty' invisible='1' />
-                    <field name='lot_id' attrs="{'readonly': [('using_batch', '=', False)], 'required': [('using_batch', '=', True)]}" domain="[('goods_id', '=', goods_id), ('state', '=', 'done'), ('lot', '!=', False), ('qty_remaining', '>', 0)]" context="{'lot': True}" options="{'no_open': True, 'no_create': True}" />
-                    <field name='goods_qty' />
+                    <field name='lot_id' attrs="{'readonly': [('using_batch', '=', False)], 'required': [('using_batch', '=', True)]}" domain="[('goods_id', '=', goods_id), ('state', '=', 'done'), ('lot', '!=', False), ('qty_remaining', '>', 0), ('warehouse_dest_id', '=', warehouse_id)]" context="{'lot': True}" options="{'no_open': True, 'no_create': True}" />
+                    <field name='goods_qty' widget='float_limit' options="{'field': 'lot_qty'}" />
                     <field name='warehouse_id' string='仓库' required='1' />
 
                     <field name='warehouse_dest_id' invisible='1' />
@@ -63,8 +84,8 @@
                 <tree string='库存调拨' editable='bottom'>
                     <field name='goods_id' required='1' />
                     <field name='uom_id' required='1' />
-                    <field name='using_batch' invisible='0' />
-                    <field name='force_batch_one' invisible='0' />
+                    <field name='using_batch' invisible='1' />
+                    <field name='force_batch_one' invisible='1' />
 
                     <field name='lot' attrs="{'readonly': [('using_batch', '=', False)], 'required': [('using_batch', '=', True)]}" />
                     <field name='goods_qty' attrs="{'readonly': [('force_batch_one', '=', True)]}" sum='1' />
@@ -86,6 +107,7 @@
                     <field name='goods_id' required='1' />
                     <field name='using_batch' invisible='1' />
                     <field name='uom_id' required='1' />
+                    <field name='lot' invisible='1' />
                     <field name='lot_id' attrs="{'readonly': [('using_batch', '=', False)], 'required': [('using_batch', '=', True)]}" domain="[('goods_id', '=', goods_id), ('state', '=', 'done'), ('lot', '!=', False), ('qty_remaining', '>', 0)]" context="{'lot': True}" options="{'no_open': True, 'no_create': True}" />
 
                     <field name='lot_qty' invisible='1' />
@@ -130,7 +152,7 @@
                                 'tree_view_ref': 'warehouse.wh_move_line_out_tree',
                                 'warehouse_dest_type': 'others',
                                 'lot': True,
-                                'get_cost': True,
+                                'type': 'out',
                             }" attrs="{'readonly': [('state', '!=', 'draft')]}" />
                         </group>
 
@@ -161,7 +183,7 @@
             <field name='name'>wh.out.tree</field>
             <field name='model'>wh.out</field>
             <field name='arch' type='xml'>
-                <tree string='出库单' >
+                <tree string='出库单' colors='blue:state == "draft"'>
                     <field name='name' />
                     <field name='date' />
                     <field name='type' />
@@ -169,6 +191,7 @@
                     <field name='partner_id' string='客户' />
                     <field name='create_uid' string='制单人' />
                     <field name='approve_uid' />
+                    <field name='state' />
                     <field name='note' />
                 </tree>
             </field>
@@ -203,6 +226,7 @@
                             <field nolabel='1' name='line_in_ids' context="{
                                 'tree_view_ref': 'warehouse.wh_move_line_in_tree',
                                 'warehouse_type': 'others',
+                                'type': 'in',
                             }" attrs="{'readonly': [('state', '!=', 'draft')]}" />
                         </group>
 
@@ -233,7 +257,7 @@
             <field name='name'>wh.in.tree</field>
             <field name='model'>wh.in</field>
             <field name='arch' type='xml'>
-                <tree string='入库单' >
+                <tree string='入库单' colors='blue:state == "draft"'>
                     <field name='name' />
                     <field name='date' />
                     <field name='type' />
@@ -241,6 +265,7 @@
                     <field name='partner_id' string='供应商' />
                     <field name='create_uid' string='制单人' />
                     <field name='approve_uid' />
+                    <field name='state' />
                     <field name='note' />
                 </tree>
             </field>
@@ -271,7 +296,7 @@
                         </group>
 
                         <group string='移库明细'>
-                            <field nolabel='1' name='line_out_ids' context="{'tree_view_ref': 'warehouse.wh_move_line_internal_tree', 'lot': True}" attrs="{'readonly': [('state', '!=', 'draft')]}" />
+                            <field nolabel='1' name='line_out_ids' context="{'tree_view_ref': 'warehouse.wh_move_line_internal_tree', 'lot': True, 'type': 'internal'}" attrs="{'readonly': [('state', '!=', 'draft')]}" />
                         </group>
 
                         <group col='6'>
@@ -301,12 +326,13 @@
             <field name='name'>wh.internal.tree</field>
             <field name='model'>wh.internal</field>
             <field name='arch' type='xml'>
-                <tree string='调拨单' >
+                <tree string='调拨单' colors='blue:state == "draft"'>
                     <field name='name' />
                     <field name='date' />
                     <field name='amount_total' />
                     <field name='create_uid' string='制单人' />
                     <field name='approve_uid' />
+                    <field name='state' />
                     <field name='note' />
                 </tree>
             </field>

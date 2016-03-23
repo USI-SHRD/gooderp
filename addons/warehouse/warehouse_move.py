@@ -12,6 +12,7 @@ class wh_move(models.Model):
         ('done', u'已审核'),
     ]
 
+    origin = fields.Char(u'源单类型', required=True)
     name = fields.Char(u'单据编号', copy=False, default='/')
     state = fields.Selection(MOVE_STATE, u'状态', copy=False, default='draft')
     partner_id = fields.Many2one('partner', u'业务伙伴')
@@ -30,7 +31,6 @@ class wh_move(models.Model):
 
         return super(wh_move, self).unlink()
 
-    @api.multi
     def prev_approve_order(self):
         for order in self:
             if not order.line_out_ids and not order.line_in_ids:
@@ -49,7 +49,6 @@ class wh_move(models.Model):
                 'state': 'done',
             })
 
-    @api.multi
     def prev_cancel_approved_order(self):
         pass
 

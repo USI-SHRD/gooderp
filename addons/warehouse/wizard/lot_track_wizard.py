@@ -4,8 +4,8 @@ from datetime import date, timedelta
 from openerp import models, fields, api
 
 
-class report_stock_transceive_wizard(models.TransientModel):
-    _name = 'report.stock.transceive.wizard'
+class report_lot_track_wizard(models.TransientModel):
+    _name = 'report.lot.track.wizard'
 
     @api.model
     def _default_date_start(self):
@@ -39,8 +39,8 @@ class report_stock_transceive_wizard(models.TransientModel):
     def open_report(self):
         return {
             'type': 'ir.actions.act_window',
-            'res_model': 'report.stock.transceive',
+            'res_model': 'report.lot.track',
             'view_mode': 'tree',
-            'name': u'商品收发明细表',
+            'name': u'序列号跟踪表',
             'context': self.read(['date_start', 'date_end', 'warehouse', 'goods'])[0],
         }

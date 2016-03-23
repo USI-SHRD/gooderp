@@ -13,7 +13,6 @@ class wh_move_matching(models.Model):
     line_out_id = fields.Many2one('wh.move.line', u'入库', ondelete='set null', required=True, index=True)
     qty = fields.Float(u'数量', digits_compute=dp.get_precision('Goods Quantity'), required=True)
 
-    @api.model
     def create_matching(self, line_in_id, line_out_id, qty):
         res = {
             'line_out_id': line_out_id,
@@ -34,16 +33,18 @@ class wh_move_line(models.Model):
     matching_out_ids = fields.One2many('wh.move.matching', 'line_out_id', string=u'关联的出库')
 
     @api.multi
-    def copy_data(self):
+    def copy(self):
         # TODO 奇怪，返回值似乎被wrapper了
-        res = super(wh_move_line, self).copy_data()[0]
+        res = super(wh_move_line, self).copy()
 
-        if res.get('warehouse_id') and res.get('warehouse_dest_id'):
+        if res.get('warehouse_id') and res.get('warehouse_dest_id') and res.get('goods_id'):
             warehouses = self.env['warehouse'].browse([res.get('warehouse_id'),
                 res.get('warehouse_dest_id')])
 
             if warehouses[0].type == 'stock' and warehouses[1].type != 'stock':
-                res.update({'price': 0, 'subtotal': 0})
+                goods = self.env['goods'].browse(res.get('goods_id'))
+                subtotal, price = goods.get_suggested_cost_by_warehouse(warehouses[0], res.get('goods_qty'))
+                res.update({'price': price, 'subtotal': subtotal})
 
         return res
 
@@ -53,7 +54,6 @@ class wh_move_line(models.Model):
     def _get_qty_remaining(self):
         self.qty_remaining = self.goods_qty - sum(match.qty for match in self.matching_in_ids)
 
-    @api.multi
     def get_matching_records_by_lot(self):
         for line in self:
             if line.goods_qty > line.lot_id.qty_remaining:
@@ -64,7 +64,6 @@ class wh_move_line(models.Model):
 
         return []
 
-    @api.multi
     def prev_action_done(self):
         matching_obj = self.env['wh.move.matching']
         for line in self:
@@ -87,7 +86,6 @@ class wh_move_line(models.Model):
 
         return super(wh_move_line, self).prev_action_done()
 
-    @api.multi
     def prev_action_cancel(self):
         for line in self:
             if line.qty_remaining != line.goods_qty:
