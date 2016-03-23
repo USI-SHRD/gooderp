@@ -37,7 +37,8 @@
                                 <group>
                                     <group>
                                         <field name='using_batch' />
-                                        <field name='force_batch_one' attrs="{'invisible': [('using_batch', '=', False)]}" />                             
+                                        <field name='force_batch_one' attrs="{'invisible': [('using_batch', '=', False)]}" />
+                                        <field name='attribute_ids'/>
                                     </group>
                                     <group>
                                         <field name='cost'/>
@@ -47,7 +48,6 @@
                                                 <field name="price"/>
                                             </tree>
                                         </field>
-                                        <field name='attribute_ids'/>
                                     </group>
                                 </group>
                             </page>

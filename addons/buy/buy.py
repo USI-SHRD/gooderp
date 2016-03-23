@@ -174,7 +174,7 @@ class buy_order_line(models.Model):
     def _default_warehouse(self):
         context = self._context or {}
         if context.get('warehouse_type'):
-            return self.pool.get('warehouse').get_warehouse_by_type(self._cr, self._uid, context.get('warehouse_type'))
+            return self.env['warehouse'].get_warehouse_by_type(context.get('warehouse_type'))
 
         return False
 
@@ -182,7 +182,7 @@ class buy_order_line(models.Model):
     def _default_warehouse_dest(self):
         context = self._context or {}
         if context.get('warehouse_dest_type'):
-            return self.pool.get('warehouse').get_warehouse_by_type(self._cr, self._uid, context.get('warehouse_dest_type'))
+            return self.env['warehouse'].get_warehouse_by_type(context.get('warehouse_dest_type'))
 
         return False
 
