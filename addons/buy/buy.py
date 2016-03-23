@@ -110,7 +110,7 @@ class buy_order(models.Model):
             goods_qty = line.quantity
             qty = 0
             if self.state == 'part_in':
-                for order in self.env['buy.receipt'].search([('origin', '=', self.name), ('state', '!=', 'draft')]):
+                for order in self.env['buy.receipt'].search([('order_id', '=', self.id), ('state', '!=', 'draft')]):
                     for line_in in order.line_in_ids:
                         if line.goods_id == line_in.goods_id:
                             qty += line_in.goods_qty
@@ -138,7 +138,7 @@ class buy_order(models.Model):
         receipt_id = self.env['buy.receipt'].create({
                             'partner_id': self.partner_id.id,
                             'date': fields.Date.context_today(self),
-                            'origin': self.name,
+                            'order_id': self.id,
                             'line_in_ids': ret,
                             'note': self.note,
                             'discount_rate': self.discount_rate,
@@ -234,7 +234,7 @@ class buy_receipt(models.Model):
         self.debt = self.amount - self.payment
 
     buy_move_id = fields.Many2one('wh.move', u'入库单', required=True, ondelete='cascade')
-    origin = fields.Char(u'源单号', copy=False)
+    order_id = fields.Many2one('buy.order', u'源单号', copy=False)
     date_due = fields.Date(u'到期日期', copy=False)
     discount_rate = fields.Float(u'优惠率(%)', states=READONLY_STATES)
     discount_amount = fields.Float(u'优惠金额', compute=_compute_all_amount, states=READONLY_STATES)
@@ -276,7 +276,7 @@ class buy_receipt(models.Model):
     @api.one
     def buy_in_approve(self):
         '''审核采购入库单，更新购货订单的状态和本单的付款状态，并生成源单'''
-        order = self.env['buy.order'].search([('name', '=', self.origin)])
+        order = self.env['buy.order'].search([('id', '=', self.order_id.id)])
         for line in order.line_ids:
             for line_in in self.line_in_ids:
                 if line.goods_id.id == line_in.goods_id.id:

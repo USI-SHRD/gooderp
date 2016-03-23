@@ -40,7 +40,7 @@ class sell_order(models.Model):
     staff_id = fields.Many2one('staff',u'销售员',states=READONLY_STATES)
     date = fields.Date(u'单据日期', states=READONLY_STATES, default=lambda self: fields.Date.context_today(self),
             select=True, help=u"默认是订单创建日期", copy=False)
-    delivery_date = fields.Date(u'交货日期', states=READONLY_STATES, default=lambda self: fields.Date.context_today(self), select=True, help=u"订单的预计交货日期")
+    delivery_date = fields.Date(u'交货日期', states=READONLY_STATES, default=lambda self: fields.Date.context_today(self), select=True, copy=False, help=u"订单的预计交货日期")
     type = fields.Selection([('sell',u'销货'),('return', u'退货')], u'类型', default='sell')
     name = fields.Char(u'单据编号', select=True, copy=False,
         default='/', help=u"创建时它会自动生成有序编号")
@@ -110,7 +110,7 @@ class sell_order(models.Model):
                             'partner_id': self.partner_id.id,
                             'staff_id': self.staff_id.id,
                             'date': fields.Date.context_today(self),
-                            'origin': self.name,
+                            'order_id': self.id,
                             'line_out_ids': ret,
                             'note': self.note,
                             'benefit_rate': self.benefit_rate,
@@ -207,7 +207,7 @@ class sell_delivery(models.Model):
 
     sell_move_id = fields.Many2one('wh.move', u'出库单', required=True, ondelete='cascade')
     staff_id = fields.Many2one('res.users', u'销售员')
-    origin = fields.Char(u'源单号', copy=False)
+    order_id = fields.Many2one('sell.order', u'源单号', copy=False)
     date_due = fields.Date(u'到期日期', copy=False)
     benefit_rate = fields.Float(u'优惠率(%)', states=READONLY_STATES)
     benefit_amount = fields.Float(u'优惠金额', compute=_compute_all_amount, states=READONLY_STATES)
@@ -251,7 +251,7 @@ class sell_delivery(models.Model):
     @api.one
     def sell_out_approve(self):
         '''审核销售发货单，更新销货订单的状态和本单的收款状态，并生成源单'''
-        order = self.env['sell.order'].search([('name', '=', self.origin)])
+        order = self.env['sell.order'].search([('id', '=', self.order_id.id)])
         for line in order.line_ids:
             if line.goods_id.id == self.line_out_ids.goods_id.id:
                 if line.quantity > self.line_out_ids.goods_qty:

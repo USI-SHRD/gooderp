@@ -106,7 +106,7 @@
             	<tree string='销售订单发货单'>
             		<field name='date'/>
             		<field name='name'/>
-            		<field name="origin"/>
+            		<field name="order_id"/>
             		<field name='staff_id'/>
             		<field name='partner_id'/>
             		<field name="amount"/>
@@ -145,7 +145,7 @@
             				<group>
             					<field name='date_due' required='1' attrs="{'readonly': [('state','!=','draft')]}"/>
             					<field name='name' readonly='1'/>
-            					<field name='origin' readonly='1'/>
+            					<field name='order_id' readonly='1'/>
             				</group> 
             			</group>
             			<notebook>
