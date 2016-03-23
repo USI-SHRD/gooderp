@@ -139,6 +139,7 @@ class buy_order(models.Model):
                             'partner_id': self.partner_id.id,
                             'date': fields.Date.context_today(self),
                             'order_id': self.id,
+                            'origin':'buy.receipt',
                             'line_in_ids': ret,
                             'note': self.note,
                             'discount_rate': self.discount_rate,
