@@ -144,7 +144,6 @@ class buy_order(models.Model):
                             'discount_rate': self.discount_rate,
                             'discount_amount': self.discount_amount,
                             'amount': self.amount,
-#                             'total_cost':,
                             'state': 'draft',
                         })
         view_id = self.env['ir.model.data'].xmlid_to_res_id('buy.buy_receipt_form')
@@ -243,7 +242,7 @@ class buy_receipt(models.Model):
     payment = fields.Float(u'本次付款', states=READONLY_STATES)
     bank_account_id = fields.Many2one('bank.account', u'结算账户', default='(空)')
     debt = fields.Float(u'本次欠款', compute=_compute_all_amount, copy=False)
-    total_cost = fields.Float(u'采购费用', copy=False)
+    cost_line_ids = fields.One2many('cost.line', 'buy_id', u'采购费用', copy=False)
     state = fields.Selection(BUY_RECEIPT_STATES, u'付款状态', default='draft', readonly=True, help=u"采购入库单的状态", select=True, copy=False)
 
     @api.model
@@ -279,11 +278,12 @@ class buy_receipt(models.Model):
         '''审核采购入库单，更新购货订单的状态和本单的付款状态，并生成源单'''
         order = self.env['buy.order'].search([('name', '=', self.origin)])
         for line in order.line_ids:
-            if line.goods_id.id == self.line_in_ids.goods_id.id:
-                if line.quantity > self.line_in_ids.goods_qty:
-                    order.write({'state': 'part_in'})
-                elif line.quantity == self.line_in_ids.goods_qty:
-                    order.write({'state': 'all_in'})
+            for line_in in self.line_in_ids:
+                if line.goods_id.id == line_in.goods_id.id:
+                    if line.quantity > line_in.goods_qty:
+                        order.write({'state': 'part_in'})
+                    elif line.quantity == line_in.goods_qty:
+                        order.write({'state': 'all_in'})
 
         if self.payment > self.amount:
             raise except_orm(u'警告！', u'本次付款金额不能大于折后金额！')
@@ -295,16 +295,60 @@ class buy_receipt(models.Model):
             self.write({'state': 'paid'})
         self.write({'approve_uid': self._uid})
 
-        # 生成源单
-        self.env['money.invoice'].create({
+        # 入库单生成源单
+        categ = self.env['core.category'].search([('type', '=', 'expense')])
+        source_id = self.env['money.invoice'].create({
                             'name': self.name,
                             'partner_id': self.partner_id.id,
-                            'business_type': u'普通采购',
+                            'category_id': categ.id,
                             'date': fields.Date.context_today(self),
-                            'amount': self.debt,
-                            'reconciled': 0.0,
+                            'amount': self.amount,
+                            'reconciled': self.payment,
                             'to_reconcile': self.debt,
                             'date_due': self.date_due,
+                            'state': 'done',
+                        })
+        # 采购费用产生源单
+        if sum(cost_line.amount for cost_line in self.cost_line_ids) > 0:
+            categ = self.env['core.category'].search([('type', '=', 'attribute')])
+            for line in self.cost_line_ids:
+                self.env['money.invoice'].create({
+                            'name': self.name,
+                            'partner_id': self.partner_id.id,
+                            'category_id': categ.id,
+                            'date': fields.Date.context_today(self),
+                            'amount': line.amount,
+                            'reconciled': 0.0,
+                            'to_reconcile': line.amount,
+                            'date_due': self.date_due,
+                            'state': 'done',
+                        })
+        # 生成付款单
+        money_lines = []
+        source_lines = []
+        money_lines.append({
+            'bank_id': self.bank_account_id.id,
+            'amount': self.payment,
+        })
+        source_lines.append({
+            'name': source_id.id,
+            'category_id': categ.id,
+            'date': source_id.date,
+            'amount': self.amount,
+            'reconciled': 0.0,
+            'to_reconcile': self.amount,
+            'this_reconcile': self.payment,
+        })
+
+        self.env['money.order'].create({
+                            'partner_id': self.partner_id.id,
+                            'date': fields.Date.context_today(self),
+                            'line_ids': [(0, 0, line) for line in money_lines],
+                            'source_ids': [(0, 0, line) for line in source_lines],
+                            'type': 'pay',
+                            'amount': self.amount,
+                            'reconciled': self.payment,
+                            'to_reconcile': self.debt,
                             'state': 'done',
                         })
         return True
@@ -313,6 +357,17 @@ class buy_receipt(models.Model):
     def buy_in_refuse(self):
         '''反审核采购入库单'''
         self.write({'state': 'draft'})
+        return True
+
+    @api.one
+    def buy_share_cost(self):
+        '''入库单上的采购费用分摊到入库单明细行上'''
+        total_amount = 0
+        for line in self.line_in_ids:
+            total_amount += line.amount
+        print '合计采购金额：',total_amount
+        for line in self.line_in_ids:
+            line.share_cost = sum(cost_line.amount for cost_line in self.cost_line_ids) / total_amount * line.amount
         return True
 
 class buy_receipt_line(models.Model):
@@ -342,3 +397,14 @@ class buy_receipt_line(models.Model):
     tax_amount = fields.Float(u'税额', compute=_compute_all_amount)
     subtotal = fields.Float(u'价税合计', compute=_compute_all_amount)
     share_cost = fields.Float(u'采购费用')
+
+class cost_line(models.Model):
+    _name = 'cost.line'
+    _description = u"采购销售费用"
+
+    buy_id = fields.Many2one('buy.receipt', u'入库单号')
+    sell_id = fields.Many2one('sell.delivery', u'出库单号')
+    partner_id = fields.Many2one('partner', u'供应商')
+    category_id = fields.Many2one('core.category', string=u'类别')
+    amount = fields.Float(u'金额')
+    note = fields.Char(u'备注')
