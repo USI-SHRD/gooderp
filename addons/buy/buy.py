@@ -171,6 +171,7 @@ class buy_order(models.Model):
                             'date': self.planned_date,
                             'order_id': self.id,
                             'line_in_ids': receipt_line[0],
+                            'origin':'buy.receipt',
                             'note': self.note,
                             'discount_rate': self.discount_rate,
                         })

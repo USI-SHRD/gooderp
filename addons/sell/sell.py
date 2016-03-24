@@ -110,6 +110,7 @@ class sell_order(models.Model):
                             'staff_id': self.staff_id.id,
                             'date': fields.Date.context_today(self),
                             'order_id': self.id,
+                            'origin':'sell.delivery',
                             'line_out_ids': ret,
                             'note': self.note,
                             'benefit_rate': self.benefit_rate,
