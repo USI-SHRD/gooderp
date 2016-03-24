@@ -92,7 +92,6 @@ class sell_order(models.Model):
                 'spec': line.spec,
                 'uom_id': line.uom_id.id,
                 'warehouse_id': line.warehouse_id and line.warehouse_id.id or '',
-                'warehouse_dest_id': line.warehouse_dest_id and line.warehouse_dest_id.id or '',
                 'goods_qty': line.quantity,
                 'price': line.price,
                 'discount_rate': line.discount_rate,
@@ -151,14 +150,6 @@ class sell_order_line(models.Model):
 
         return False
 
-    @api.model
-    def _default_warehouse_dest(self):
-        context = self._context or {}
-        if context.get('warehouse_dest_type'):
-            return self.env['warehouse'].get_warehouse_by_type(context.get('warehouse_dest_type'))
-
-        return False
-
     @api.one
     @api.depends('quantity', 'price', 'discount_rate', 'tax_rate')
     def _compute_all_amount(self):
@@ -178,7 +169,6 @@ class sell_order_line(models.Model):
     spec = fields.Char(u'属性') #产品的属性，选择产品时自动从产品管理表获取
     uom_id = fields.Many2one('uom', u'单位', compute=_compute_uom_id, store=True,readonly=True)
     warehouse_id = fields.Many2one('warehouse', u'调出仓库', default=_default_warehouse)
-    warehouse_dest_id = fields.Many2one('warehouse', u'调入仓库', default=_default_warehouse_dest)
     quantity = fields.Float(u'数量', default=1)
     price = fields.Float(u'销售单价')
     price_taxed = fields.Float(u'含税单价', compute=_compute_all_amount, store=True,readonly=True)
@@ -197,13 +187,14 @@ class sell_delivery(models.Model):
     _order = 'date desc, id desc'
 
     @api.one
-    @api.depends('line_out_ids.subtotal', 'benefit_rate', 'receipt', 'partner_id')
+    @api.depends('line_out_ids.subtotal', 'benefit_rate', 'partner_cost', 'receipt', 'partner_id')
     def _compute_all_amount(self):
         '''当优惠率改变时，改变优惠金额和优惠后金额'''
-        self.total = sum(line.subtotal for line in self.line_out_ids)
-        self.benefit_amount = self.total * self.benefit_rate * 0.01
-        self.amount = self.total - self.benefit_amount
-        self.debt = self.amount - self.receipt
+        total = sum(line.subtotal for line in self.line_out_ids) # 各行价税合计之和
+        if self.benefit_rate > 0:
+            self.benefit_amount = total * self.benefit_rate * 0.01
+        self.amount = total - self.benefit_amount
+        self.debt = self.amount - self.receipt + self.partner_cost
         self.total_debt = self.partner_id.receivable
 
     sell_move_id = fields.Many2one('wh.move', u'出库单', required=True, ondelete='cascade')
@@ -269,11 +260,6 @@ class sell_delivery(models.Model):
         else:
             self.write({'state': 'receipted'})
 
-        # 审核之后更新客户的应收余额
-        partner = self.env['partner'].search([('name', '=', self.partner_id.name)])
-        partner.write({'receivable': self.debt + self.total_debt})
-        self.write({'approve_uid': self._uid})
-
         # 出库单生成源单
         categ = self.env['core.category'].search([('type', '=', 'income')])
         source_id = self.env['money.invoice'].create({
@@ -291,7 +277,7 @@ class sell_delivery(models.Model):
         if sum(cost_line.amount for cost_line in self.cost_line_ids) > 0:
             categ = self.env['core.category'].search([('type', '=', 'attribute')])
             for line in self.cost_line_ids:
-                self.env['money.invoice'].create({
+                cost_source_id = self.env['money.invoice'].create({
                             'name': self.name,
                             'partner_id': self.partner_id.id,
                             'category_id': categ.id,
@@ -302,6 +288,9 @@ class sell_delivery(models.Model):
                             'date_due': self.date_due,
                             'state': 'done',
                         })
+        # 审核之后更新客户的应收余额
+        self.env['money.invoice'].money_invoice_done()
+        self.write({'approve_uid': self._uid})
         # 生成收款单
         money_lines = []
         source_lines = []

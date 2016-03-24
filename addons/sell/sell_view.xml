@@ -58,7 +58,6 @@
                  						<field name='spec'/>
 				 						<field name='uom_id'/>
 				 						<field name='warehouse_id'/>
-				 						<field name='warehouse_dest_id'/>
                  						<field name='quantity' sum='数量合计'/>
 				 						<field name='price'/>
 				 						<field name="price_taxed"/>
@@ -157,7 +156,6 @@
 		         						<field name='spec'/>
 				 						<field name='uom_id'/>
 				 						<field name='warehouse_id'/>
-				 						<field name='warehouse_dest_id'/>
 		         						<field name='goods_qty' sum='数量合计'/>
 				 						<field name='price'/>
 				 						<field name="price_taxed"/>
