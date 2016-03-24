@@ -207,6 +207,12 @@ class money_invoice(models.Model):
                 inv.partner_id.receivable -= inv.amount
             if self.category_id.type == 'expense':
                 inv.partner_id.payable -= inv.amount
+    @api.model
+    def create(self, values):
+        new_id = super(money_invoice, self).create(values)
+        if not self.env.user.company_id.draft_invoice:
+            new_id.money_invoice_done()
+        return new_id
         
 class source_order_line(models.Model):
     _name = 'source.order.line'
