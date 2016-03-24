@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+<openerp>
+    <data>
+        <!--客户对账单向导form-->
+    	<record id="partner_statements_report_wizard_form" model="ir.ui.view">
+            <field name="name">partner.statements.report.wizard.form</field>
+            <field name="model">partner.statements.report.wizard</field>
+            <field name="arch" type="xml">
+                <form string="Partner Statements Report Wizard">
+                    <group>
+                        <group>
+				            <field name="partner_id"/>
+                        </group>
+                        <group>
+                            <field name="from_date"/>
+                            <field name="end_date"/>
+                        </group>
+                    </group>
+                    <footer>
+                        <button name='confirm_partner_statements' string='确定' type='object' class='oe_highlight'/>
+                        or
+                        <button string='取消' class='oe_link' special='cancel'/>
+                	</footer>
+                </form>
+            </field>
+        </record>
+
+		<!-- 客户对账单向导 action -->
+		<record id='partner_statements_report_wizard_action' model='ir.actions.act_window'>
+            <field name='name'>客户对账单</field>
+            <field name='res_model'>partner.statements.report.wizard</field>
+            <field name='view_type'>form</field>
+            <field name='view_mode'>form</field>
+            <field name='view_id' ref='partner_statements_report_wizard_form' />
+            <field name='target'>new</field>
+        </record>
+
+		<!-- 客户对账单 -->
+		<menuitem id="menu_money_report" name="报表" parent="menu_money_root" sequence="2"/>
+        <menuitem id="report_partner_statements_action" action="partner_statements_report_wizard_action" parent="menu_money_report" sequence="1"/>
+	</data>
+</openerp>
+	

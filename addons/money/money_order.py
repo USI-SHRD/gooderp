@@ -192,7 +192,6 @@ class money_invoice(models.Model):
     def money_invoice_done(self):
         for inv in self:
             inv.state = 'done'
-            inv.to_reconcile = inv.amount
             if self.category_id.type == 'income':
                 inv.partner_id.receivable += inv.amount
             if self.category_id.type == 'expense':
@@ -202,7 +201,6 @@ class money_invoice(models.Model):
     def money_invoice_draft(self):
         for inv in self:
             inv.state = 'draft'
-            inv.to_reconcile = 0
             if self.category_id.type == 'income':
                 inv.partner_id.receivable -= inv.amount
             if self.category_id.type == 'expense':

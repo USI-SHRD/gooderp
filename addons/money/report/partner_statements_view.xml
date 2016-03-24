@@ -12,9 +12,6 @@
                     <field name="name"/>
                     <field name="category_id"/>
                     <field name="amount"/>
-                    <field name="discount_amount"/>
-                    <field name="cost"/>
-                    <field name="real_amount"/>
                     <field name="balance_amount"/>
                 </tree>
             </field>
