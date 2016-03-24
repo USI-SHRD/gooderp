@@ -9,6 +9,8 @@ from openerp import api
 
 class goods(models.Model):
     _inherit = 'goods'
+    
+    default_wh = fields.Many2one('warehouse',u'默认库位')
 
     # 使用SQL来取得指定产品情况下的库存数量
     @api.multi
