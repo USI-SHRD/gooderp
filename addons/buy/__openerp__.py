@@ -5,7 +5,7 @@
     'website': "http://www.osbzr.com",
     'category': 'gooderp',
     'version': '8.0.0.1',
-    'depends': ['base','mail','warehouse'],
+    'depends': ['core','mail','warehouse','money'],
     'data': [
         'buy_view.xml',
         'buy_data.xml',
