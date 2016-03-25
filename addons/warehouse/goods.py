@@ -3,7 +3,7 @@
 from openerp.osv import osv
 from utils import safe_division
 
-from openerp import models
+from openerp import models, fields
 from openerp import api
 
 
