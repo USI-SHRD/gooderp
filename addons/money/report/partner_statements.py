@@ -23,16 +23,26 @@ from openerp import fields, models, api, tools
 
 class partner_statements_report(models.Model):
     _name = "partner.statements.report"
-    _description = u"业务伙伴对账单"
+    _description = u"客户对账单"
     _auto = False
-    _order = 'date desc'
+    _order = 'date'
+
+    @api.one
+    @api.depends('amount', 'pay_amount')
+    def _compute_balance_amount(self):
+        # ???
+        balance = self.search([('id', '=', self._ids[0] - 1)])
+        before_balance = balance.balance_amount
+        self.balance_amount += before_balance + self.amount - self.pay_amount
 
     partner_id = fields.Many2one('partner', string=u'业务伙伴', readonly=True)
     name = fields.Char(string=u'单据编号', readonly=True)
     date = fields.Date(string=u'单据日期', readonly=True)
-    category_id = fields.Many2one('core.category', string=u'业务类别', readonly=True)
-    amount = fields.Float(string=u'单据金额', readonly=True)
-    balance_amount = fields.Float(string=u'应收款余额', readonly=True)
+    type = fields.Char(string=u'业务类别', readonly=True)
+    amount = fields.Float(string=u'应收金额', readonly=True)
+    pay_amount = fields.Float(string=u'付款金额', readonly=True)
+    balance_amount = fields.Float(string=u'应收款余额', compute='_compute_balance_amount', readonly=True)
+#     balance_amount = fields.Float(string=u'应收款余额', readonly=True)
     note = fields.Char(string=u'备注', readonly=True)
 
     def init(self, cr):
@@ -40,35 +50,42 @@ class partner_statements_report(models.Model):
         tools.drop_view_if_exists(cr, 'partner_statements_report')
         cr.execute("""
             CREATE or REPLACE VIEW partner_statements_report as (
-            SELECT  m.id as id,
-                    m.partner_id as partner_id,
-                    m.name as name,
-                    m.date as date,
-                    Null as category_id,
-                    m.amount as amount,
-                    0 as balance_amount,
-                    m.note as note
-            FROM money_order as m
-            UNION ALL
-            SELECT  mi.id as id,
-                    mi.partner_id as partner_id,
-                    mi.name as name,
-                    mi.date as date,
-                    mi.category_id as category_id,
-                    mi.amount as amount,
-                    mi.to_reconcile as balance_amount,
-                    Null as note
-            FROM money_invoice as mi
-            UNION ALL
-            SELECT  omo.id as id,
-                    omo.partner_id as partner_id,
-                    omo.name as name,
-                    omo.date as date,
-                    NULL as category_id,
-                    omo.total_amount as amount,
-                    0 as balance_amount,
-                    Null as note
-            FROM other_money_order as omo)
+            SELECT  ROW_NUMBER() OVER() as id,
+                    partner_id,
+                    name,
+                    date,
+                    type,
+                    amount,
+                    pay_amount,
+                    balance_amount,
+                    note
+            FROM
+                (SELECT
+                        m.partner_id as partner_id,
+                        m.name as name,
+                        m.date as date,
+                        '收款' AS type,
+                        0 as amount,
+                        m.amount as pay_amount,
+                        0 as balance_amount,
+                        m.note as note
+                FROM money_order as m
+                WHERE m.type = 'get'
+                UNION ALL
+                SELECT
+                        mi.partner_id as partner_id,
+                        mi.name as name,
+                        mi.date as date,
+                        '销售' as type,
+                        mi.amount as amount,
+                        0 as pay_amount,
+                        0 as balance_amount,
+                        Null as note
+                FROM money_invoice as mi
+                LEFT JOIN core_category as c ON mi.category_id = c.id
+                WHERE c.type = 'income'
+                ORDER BY date
+                ) AS ps ORDER BY date)
         """)
 
 # vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:

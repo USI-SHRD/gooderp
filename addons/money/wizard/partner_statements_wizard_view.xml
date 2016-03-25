@@ -9,7 +9,7 @@
                 <form string="Partner Statements Report Wizard">
                     <group>
                         <group>
-				            <field name="partner_id"/>
+				            <field name="partner_id" domain="[('c_category_id', '!=', False)]"/>
                         </group>
                         <group>
                             <field name="from_date"/>

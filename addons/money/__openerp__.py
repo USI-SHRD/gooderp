@@ -17,5 +17,6 @@
         'wizard/partner_statements_wizard_view.xml',
         'report/bank_statements_view.xml',
         'wizard/bank_statements_wizard_view.xml',
+        'report/other_money_statements_view.xml'
         ]
 }

@@ -15,8 +15,7 @@ class partner_statements_report_wizard(models.Model):
         # 客户对账单
         if self.from_date > self.end_date:
             raise except_orm(u'错误！', u'结束日期不能小于开始日期！')
-
-        resource_id = self.env['ir.model.data'].xmlid_to_res_id('money.partner_statements_report_tree') 
+        resource_id = self.env['ir.model.data'].xmlid_to_res_id('money.partner_statements_report_tree')
 
         return {
                 'name': u'客户对账单',
@@ -26,5 +25,5 @@ class partner_statements_report_wizard(models.Model):
                 'view_id': False,
                 'views': [(resource_id, 'tree')],
                 'type': 'ir.actions.act_window',
-                'domain':[('partner_id','=', self.partner_id.id), ('date','>=', self.from_date), ('date','<=', self.end_date)]
+                'domain':[('partner_id','=',self.partner_id.id), ('date','>=', self.from_date), ('date','<=', self.end_date)]
                 }
