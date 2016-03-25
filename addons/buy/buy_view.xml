@@ -34,7 +34,6 @@
                 <header>
                 	<button name="buy_order_done" states="draft" string="审核" type="object" class="oe_highlight"/>
                 	<button name="buy_order_draft" states="done" string="反审核" type="object"/>
-                    <!-- <button name="buy_generate_order" states="done,part_in" string="生成采购入库单" type="object" class="oe_highlight"/> -->
                     <field name="state" widget="statusbar" statusbar_visible="draft,done" statusbar_colors='{"done":"blue"}' readonly="1"/>
                 </header>
                 <sheet>
@@ -55,10 +54,10 @@
                             <field name="goods_state" readonly="1"/>
                         </group>
                     </group>
-                    <field name="line_ids" context="{'warehouse_type': 'supplier', 'warehouse_dest_type': 'stock'}">
+                    <field name="line_ids" context="{'warehouse_type': 'supplier'}">
                     	<tree string="购货订单行" editable="bottom">
                             <field name="goods_id" required='1'/>
-                            <field name="spec"/>
+                            <field name="attribute_id"/>
                             <field name="uom_id"/>
                             <field name='warehouse_id' />
                             <field name='warehouse_dest_id' required='1'/>
@@ -149,16 +148,17 @@
                         	<field name="date_due" required="1" attrs="{'readonly': [('state','!=','draft')]}"/>
                             <field name="name" readonly="1"/>
                             <field name="order_id" readonly="1"/>
+                            <field name='invoice_id' readonly='1'/>
                             <field name="money_state" readonly="1"/>
                         </group>
                     </group>
                     <notebook>
                     	<page string="入库单行">
 		                    <field name="line_in_ids" attrs="{'readonly': [('state','!=','draft')]}"
-		                    	context="{'warehouse_type': 'supplier', 'warehouse_dest_type': 'stock'}">
+		                    	context="{'warehouse_type': 'supplier'}">
 		                    	<tree string="Buy Receipt Lines" editable="bottom">
 		                            <field name="goods_id" required='1'/>
-		                            <field name="spec"/>
+		                            <field name="attribute_id"/>
 		                            <field name="uom_id"/>
 		                            <field name='warehouse_id'/>
 		                            <field name='warehouse_dest_id' required='1'/>
@@ -167,7 +167,7 @@
 		                            <field name="price_taxed"/>
 		                            <field name="discount_rate"/>
 		                            <field name="discount_amount" readonly='0' sum="合计折扣额"/>
-		                            <field name="amount" sum="合计金额"/>
+		                            <field name="amount" string="购货金额" sum="合计金额"/>
 		                            <field name="tax_rate"/>
 		                            <field name="tax_amount" sum="合计税额"/>
 		                            <field name="subtotal" sum="价税合计的合计"/>

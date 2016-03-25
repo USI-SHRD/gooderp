@@ -20,7 +20,7 @@
 #
 ##############################################################################
 {
-    'name':'gooderp销售',
+    'name':'GOODERP 销售模块',
     'author':'jeff@osbzr.com,jacky@osbzr.com',
     'website': 'https://www.osbzr.com',
     'description': '''gooderp销售实例，通过安装gooderp模块展示openerp的销售流程''',
@@ -28,12 +28,6 @@
     'data':[
             'sell_view.xml',
             'sell_data.xml',
-            ],
-    'text' :[
-         
-            ],       
-    'demo': [
-        
             ],
     'installable': True,
     'auto_install': False,
