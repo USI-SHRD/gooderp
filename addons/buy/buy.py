@@ -45,7 +45,7 @@ class buy_order(models.Model):
     @api.one
     @api.depends('line_ids.subtotal', 'discount_amount')
     def _compute_amount(self):
-        '''计算订单合计金额，并且当优惠率改变时，改变优惠金额和优惠后金额'''
+        '''当订单行和优惠金额改变时，改变优惠后金额'''
         total = sum(line.subtotal for line in self.line_ids)
         self.amount = total - self.discount_amount
 
@@ -78,7 +78,7 @@ class buy_order(models.Model):
     discount_rate = fields.Float(u'优惠率(%)', states=READONLY_STATES)
     discount_amount = fields.Float(u'优惠金额', states=READONLY_STATES, track_visibility='always')
     amount = fields.Float(u'优惠后金额', store=True, readonly=True,
-            compute='_compute_amount', track_visibility='always')
+                          compute='_compute_amount', track_visibility='always')
     approve_uid = fields.Many2one('res.users', u'审核人', copy=False)
     state = fields.Selection(BUY_ORDER_STATES, u'审核状态', readonly=True,
                              help=u"购货订单的审核状态", select=True, copy=False, default='draft')
@@ -137,7 +137,7 @@ class buy_order(models.Model):
         return (0, 0, {
                     'buy_line_id': line.id,
                     'goods_id': line.goods_id.id,
-                    'spec': line.spec, #FIXME 换成属性
+                    'attribute_id': line.attribute_id.id, #FIXME: 换成属性
                     'uom_id': line.uom_id.id,
                     'warehouse_id': line.warehouse_id.id,
                     'warehouse_dest_id': line.warehouse_dest_id.id,
@@ -173,7 +173,7 @@ class buy_order(models.Model):
                             'date': self.planned_date,
                             'order_id': self.id,
                             'line_in_ids': receipt_line[0],
-                            'origin':'buy.receipt',
+                            'origin': 'buy.receipt',
                             'note': self.note,
                             'discount_rate': self.discount_rate,
                         })
@@ -194,15 +194,6 @@ class buy_order_line(models.Model):
     _name = 'buy.order.line'
     _description = u'购货订单明细'
 
-    @api.one
-    @api.onchange('goods_id')
-    def onchange_goods_id(self):
-        '''当订单行的产品变化时，带出产品上的单位和默认仓库'''
-        if self.goods_id:
-            self.uom_id = self.goods_id.uom_id
-            self.warehouse_dest_id = self.goods_id.default_wh
-
-    # TODO：取产品的默认仓库
     @api.model
     def _default_warehouse(self):
         context = self._context or {}
@@ -214,7 +205,7 @@ class buy_order_line(models.Model):
     @api.one
     @api.depends('quantity', 'price', 'discount_amount', 'tax_rate')
     def _compute_all_amount(self):
-        '''当订单行的数量、购货单价、折扣率、税率改变时，改变折扣额、金额、税额、价税合计'''
+        '''当订单行的数量、单价、折扣额、税率改变时，改变购货金额、税额、价税合计'''
         amount = self.quantity * self.price - self.discount_amount # 折扣后金额
         tax_amt = amount * self.tax_rate * 0.01 # 税额
         self.price_taxed = self.price * (1 + self.tax_rate * 0.01)
@@ -224,7 +215,8 @@ class buy_order_line(models.Model):
 
     order_id = fields.Many2one('buy.order', u'订单编号', select=True, required=True, ondelete='cascade')
     goods_id = fields.Many2one('goods', u'商品')
-    spec = fields.Char(u'属性') # FIXME:改成产品属性
+    # FIXME:改成产品属性
+    attribute_id = fields.Many2one('attribute', u'属性')
     uom_id = fields.Many2one('uom', u'单位', store=True, readonly=True)
     warehouse_id = fields.Many2one('warehouse', u'调出仓库', default=_default_warehouse)
     warehouse_dest_id = fields.Many2one('warehouse', u'调入仓库') # FIXME 给产品加onchange
@@ -242,6 +234,17 @@ class buy_order_line(models.Model):
     note = fields.Char(u'备注')
     # TODO:放到单独模块中 sell_to_buy many2one 到sell.order
     origin = fields.Char(u'源单号')
+
+    @api.one
+    @api.onchange('goods_id')
+    def onchange_goods_id(self):
+        '''当订单行的产品变化时，带出产品上的单位和默认仓库'''
+        if self.goods_id:
+            self.uom_id = self.goods_id.uom_id
+            self.warehouse_dest_id = self.goods_id.default_wh # 取产品的默认仓库
+            #FIXME:选择产品后取产品上的第一个属性是否正确？入库单行也应如此
+            if self.goods_id.attribute_ids:
+                self.attribute_id = self.goods_id.attribute_ids[0]
 
     @api.one
     @api.onchange('discount_rate')
@@ -288,7 +291,7 @@ class buy_receipt(models.Model):
     amount = fields.Float(u'优惠后金额', compute=_compute_all_amount, store=True, readonly=True)
     payment = fields.Float(u'本次付款', states=READONLY_STATES)
     bank_account_id = fields.Many2one('bank.account', u'结算账户')
-    debt = fields.Float(u'本次欠款', compute=_compute_all_amount, copy=False, store=True, readonly=True)
+    debt = fields.Float(u'本次欠款', compute=_compute_all_amount, store=True, readonly=True, copy=False)
     cost_line_ids = fields.One2many('cost.line', 'buy_id', u'采购费用', copy=False)
     state = fields.Selection(BUY_RECEIPT_STATES, u'审核状态', default='draft',
                              readonly=True, help=u"采购入库单的审核状态", select=True, copy=False)
@@ -328,7 +331,7 @@ class buy_receipt(models.Model):
             for line in self.line_in_ids:
                 line.buy_line_id.quantity_in += line.goods_qty
 
-        self.write({'approve_uid': self._uid})
+        self.approve_uid = self.env.uid
 
         # 入库单生成源单
         #FIXME:用xml_id取
@@ -391,6 +394,7 @@ class buy_receipt(models.Model):
             money_order.money_order_done()
         # FIXME: 生成分拆单
         self.env['buy.order'].buy_generate_receipt()
+        # FIXME: 没法将状态更新为 已审核
         self.buy_move_id.approve_order()
         return True
 
@@ -408,33 +412,8 @@ class buy_receipt_line(models.Model):
     _inherit = 'wh.move.line'
     _description = u"采购入库明细"
 
-    @api.one
-    @api.depends('goods_qty', 'price', 'discount_amount', 'tax_rate')
-    def _compute_all_amount(self):
-        '''当订单行的数量、购货单价、折扣额、税率改变时，改变金额、税额、价税合计'''
-        amount = self.goods_qty * self.price - self.discount_amount
-        tax_amt = amount * self.tax_rate * 0.01
-        self.price_taxed = self.price * (1 + self.tax_rate * 0.01)
-        self.amount = amount
-        self.tax_amount = tax_amt
-        self.subtotal = amount + tax_amt
-
     buy_line_id = fields.Many2one('buy.order.line', u'购货单行')
-    spec = fields.Char(u'属性') # TODO:
-    price_taxed = fields.Float(u'含税单价', compute=_compute_all_amount, store=True, readonly=True)
-    discount_rate = fields.Float(u'折扣率%')
-    discount_amount = fields.Float(u'折扣额')
-    amount = fields.Float(u'购货金额', compute=_compute_all_amount, store=True, readonly=True)
-    tax_rate = fields.Float(u'税率(%)', default=17.0)
-    tax_amount = fields.Float(u'税额', compute=_compute_all_amount, store=True, readonly=True)
-    subtotal = fields.Float(u'价税合计', compute=_compute_all_amount, store=True, readonly=True)
     share_cost = fields.Float(u'采购费用')
-
-    @api.one
-    @api.onchange('discount_rate')
-    def onchange_discount_rate(self):
-        if self.discount_rate:
-            self.discount_amount = self.goods_qty * self.price * self.discount_rate * 0.01
 
 class cost_line(models.Model):
     _name = 'cost.line'

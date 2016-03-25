@@ -51,11 +51,23 @@ class wh_move_line(models.Model):
 
         return False
 
+    @api.one
+    @api.depends('goods_qty', 'price', 'discount_amount', 'tax_rate')
+    def _compute_all_amount(self):
+        '''当订单行的数量、单价、折扣额、税率改变时，改变金额、税额、价税合计'''
+        amount = self.goods_qty * self.price - self.discount_amount
+        tax_amt = amount * self.tax_rate * 0.01
+        self.price_taxed = self.price * (1 + self.tax_rate * 0.01)
+        self.amount = amount
+        self.tax_amount = tax_amt
+        self.subtotal = amount + tax_amt
+
     move_id = fields.Many2one('wh.move', string=u'移库单', ondelete='cascade')
     date = fields.Datetime(u'完成日期', copy=False)
     type = fields.Selection(MOVE_LINE_TYPE, u'类型', default=lambda self: self.env.context.get('type'),)
     state = fields.Selection(MOVE_LINE_STATE, u'状态', copy=False, default='draft')
     goods_id = fields.Many2one('goods', string=u'产品', required=True, index=True)
+    attribute_id = fields.Many2one('attribute', u'属性')
     using_batch = fields.Boolean(related='goods_id.using_batch', string=u'批次管理')
     force_batch_one = fields.Boolean(related='goods_id.force_batch_one', string=u'每批次数量为1')
     lot = fields.Char(u'序列号')
@@ -69,7 +81,14 @@ class wh_move_line(models.Model):
     warehouse_dest_id = fields.Many2one('warehouse', string=u'调入仓库', required=True, default=_get_default_warehouse_dest)
     goods_qty = fields.Float(u'数量', digits_compute=dp.get_precision('Goods Quantity'), default=1)
     price = fields.Float(u'单价', digits_compute=dp.get_precision('Accounting'))
-    subtotal = fields.Float(u'金额', digits_compute=dp.get_precision('Accounting'))
+    price_taxed = fields.Float(u'含税单价', compute=_compute_all_amount, store=True, readonly=True)
+    discount_rate = fields.Float(u'折扣率%')
+    discount_amount = fields.Float(u'折扣额')
+    amount = fields.Float(compute=_compute_all_amount, store=True, readonly=True)
+    tax_rate = fields.Float(u'税率(%)', default=17.0)
+    tax_amount = fields.Float(u'税额', compute=_compute_all_amount, store=True, readonly=True)
+    subtotal = fields.Float(u'价税合计', compute=_compute_all_amount, store=True, readonly=True)
+#     subtotal = fields.Float(u'金额', digits_compute=dp.get_precision('Accounting'))
     note = fields.Text(u'备注')
 
     def get_origin_explain(self):
@@ -214,6 +233,12 @@ class wh_move_line(models.Model):
     def onchange_price(self):
         self.subtotal = self.price and self.price \
             and self._get_subtotal_util(self.goods_qty, self.price) or 0
+
+    @api.one
+    @api.onchange('discount_rate')
+    def onchange_discount_rate(self):
+        if self.discount_rate:
+            self.discount_amount = self.goods_qty * self.price * self.discount_rate * 0.01
 
     @api.multi
     def unlink(self):
