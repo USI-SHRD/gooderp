@@ -20,31 +20,6 @@
                 </tree>
             </field>
         </record>
-         <!--现金银行报表graph-->
-        <record id='bank_statements_report_graph' model='ir.ui.view'>
-            <field name="name">bank.statements.report.graph</field>
-            <field name="model">bank.statements.report</field>
-            <field name='arch' type='xml'>
-                <graph type='pivot'>
-                    <field name='partner_id' type='row' />
-                    <field name='date' type='row' />
-                    <field name='balance' type='col' />
-                </graph>
-            </field>
-        </record>
-        
-        <!-- 现金银行报表 action -->
-        <record id="bank_statements_action" model="ir.actions.act_window">
-            <field name="name">现金银行报表</field>
-            <field name="type">ir.actions.act_window</field>
-            <field name="res_model">bank.statements.report</field>
-            <field name="view_mode">graph,tree</field>
-            <field name='view_id' ref='bank_statements_report_graph' />
-        </record>
-
-		<!-- 现金银行报表menu -->
-		<menuitem id="menu_money_report" name="报表" parent="menu_money_root" sequence="2"/>
-        <menuitem id="report_bank_statements_action" action="bank_statements_action" parent="menu_money_report" sequence="2"/>
 	</data>
 </openerp>
 	
