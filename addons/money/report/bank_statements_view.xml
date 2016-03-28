@@ -7,16 +7,13 @@
             <field name="model">bank.statements.report</field>
             <field name="arch" type="xml">
                 <tree string="Bank Statements Report">
-                	<field name="bank_id"/>
-                	<field name="bank_name"/>
                 	<field name="date"/>
                     <field name="name"/>
-                    <field name="type"/>
+                    <field name="note"/>
                     <field name="get"/>
                     <field name="pay"/>
                     <field name="partner_id"/>
                     <field name="balance"/>
-                    <field name="note"/>
                 </tree>
             </field>
         </record>

@@ -34,9 +34,9 @@ class money_order(models.Model):
     @api.model
     def create(self, values):
         # 创建单据时，更新订单类型的不同，生成不同的单据编号
-        if self._context.get('type') == 'get':
-            values.update({'name': self.env['ir.sequence'].get('pay.order') or '/'})
         if self._context.get('type') == 'pay':
+            values.update({'name': self.env['ir.sequence'].get('pay.order') or '/'})
+        if self._context.get('type') == 'get':
             values.update({'name': self.env['ir.sequence'].get('get.order') or '/'})
 
         return super(money_order, self).create(values)
@@ -187,6 +187,7 @@ class money_invoice(models.Model):
     reconciled = fields.Float(string=u'已核销金额', readonly=True, states={'draft': [('readonly', False)]})
     to_reconcile = fields.Float(string=u'未核销金额', readonly=True, states={'draft': [('readonly', False)]})
     date_due = fields.Date(string=u'到期日')
+    move_id = fields.Many2one('wh.move', string=u'出入库单', readonly=True, states={'draft': [('readonly', False)]})
 
     @api.multi
     def money_invoice_done(self):
