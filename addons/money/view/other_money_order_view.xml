@@ -42,7 +42,7 @@
                             <field name="date"/>
                         </group>
                     </group>
-                    <field name="line_ids">
+                    <field name="line_ids" context="{'type': type}">
                     	<tree string="其他收支单明细" editable="bottom">
                     		<field name="category_id"/>
                             <field name="amount" sum="合计"/>
