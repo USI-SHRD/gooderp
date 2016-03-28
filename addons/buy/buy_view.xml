@@ -59,10 +59,10 @@
                             <field name="goods_id" required='1'/>
                             <field name="attribute_id"/>
                             <field name="uom_id"/>
-                            <field name='warehouse_id' />
+                            <field name='warehouse_id' invisible='1'/>
                             <field name='warehouse_dest_id' required='1'/>
                             <field name="quantity" sum="合计数量"/>
-                            <field name="quantity_in" readonly="1" sum="合计已入库数量"/>
+                            <field name="quantity_in"  sum="合计已入库数量"/>
                             <field name="price"/>
                             <field name="price_taxed"/>
                             <field name="discount_rate"/>
@@ -160,7 +160,7 @@
 		                            <field name="goods_id" required='1'/>
 		                            <field name="attribute_id"/>
 		                            <field name="uom_id"/>
-		                            <field name='warehouse_id'/>
+		                            <field name='warehouse_id' invisible='1'/>
 		                            <field name='warehouse_dest_id' required='1'/>
 		                            <field name="goods_qty" sum="合计数量"/>
 		                            <field name="price"/>
