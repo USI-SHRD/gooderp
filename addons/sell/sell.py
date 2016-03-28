@@ -8,13 +8,8 @@ SELL_ORDER_STATES = [
         ('draft', u'未审核'),
         ('done', u'已审核'),
     ]
-SELL_DELIVERY_STATES = [
-        ('draft', u'未审核'),
-        ('done', u'已审核'),
-#         ('confirmed', u'未收款'),
-#         ('part_receipted', u'部分收款'),
-#         ('receipted', u'全部收款'),
-    ]
+
+# 字段只读状态
 READONLY_STATES = {
         'done': [('readonly', True)],
     }
@@ -99,7 +94,7 @@ class sell_order(models.Model):
         if self.goods_state != u'未出库':
             raise except_orm(u'错误', u'该销货订单已经发货，不能反审核！')
         else:
-            # FIXME: 查找产生的出库单并删除
+            # 查找产生的发货单并删除
             delivery = self.env['sell.delivery'].search([('order_id', '=', self.name)])
             if delivery:
                 delivery.unlink()
@@ -117,7 +112,7 @@ class sell_order(models.Model):
         else:
             qty = line.quantity - line.quantity_out
             discount_amount = line.discount_amount
-        return (0, 0, {
+        return {
                     'sell_line_id': line.id,
                     'goods_id': line.goods_id.id,
                     'attribute_id': line.attribute_id.id,
@@ -130,12 +125,12 @@ class sell_order(models.Model):
                     'discount_amount': discount_amount,
                     'tax_rate': line.tax_rate,
                     'note': line.note or '',
-                })
+                }
 
     @api.one
     def sell_generate_delivery(self):
         '''由销货订单生成销售发货单'''
-        delivery_line = []  # 销售出库单行
+        delivery_line = []  # 销售发货单行
 
         for line in self.line_ids:
             # 如果订单部分出库，则点击此按钮时生成剩余数量的出库单
@@ -158,7 +153,7 @@ class sell_order(models.Model):
                             'date': self.delivery_date,
                             'order_id': self.id,
                             'origin': 'sell.delivery',
-                            'line_out_ids': delivery_line[0],
+                            'line_out_ids': [(0, 0, line[0]) for line in delivery_line],
                             'note': self.note,
                             'benefit_rate': self.benefit_rate,
                         })
@@ -200,12 +195,12 @@ class sell_order_line(models.Model):
 
     order_id = fields.Many2one('sell.order', u'订单编号', select=True, required=True, ondelete='cascade')
     goods_id = fields.Many2one('goods', u'商品')
-    attribute_id = fields.Many2one('attribute', u'属性') # 产品的属性，选择产品时自动从产品管理表获取
+    attribute_id = fields.Many2one('attribute', u'属性', domain="[('goods_id', '=', goods_id)]")
     uom_id = fields.Many2one('uom', u'单位', store=True, readonly=True)
     warehouse_id = fields.Many2one('warehouse', u'调出仓库')
     warehouse_dest_id = fields.Many2one('warehouse', u'调入仓库', default=_default_warehouse_dest)
     quantity = fields.Float(u'数量', default=1)
-    quantity_out = fields.Float(u'已出库数量')
+    quantity_out = fields.Float(u'已发货数量', copy=False)
     price = fields.Float(u'销售单价')
     price_taxed = fields.Float(u'含税单价', compute=_compute_all_amount, store=True, readonly=True)
     discount_rate = fields.Float(u'折扣率%')
@@ -223,9 +218,6 @@ class sell_order_line(models.Model):
         if self.goods_id:
             self.uom_id = self.goods_id.uom_id
             self.warehouse_id = self.goods_id.default_wh # 取产品的默认仓库
-            #FIXME:选择产品后取产品上的第一个属性是否正确？出库单行也应如此
-            if self.goods_id.attribute_ids:
-                self.attribute_id = self.goods_id.attribute_ids[0]
 
     @api.one
     @api.onchange('discount_rate')
@@ -262,7 +254,7 @@ class sell_delivery(models.Model):
             elif self.amount == self.receipt:
                 self.money_state = u'全部收款'
 
-    sell_move_id = fields.Many2one('wh.move', u'出库单', required=True, ondelete='cascade')
+    sell_move_id = fields.Many2one('wh.move', u'发货单', required=True, ondelete='cascade')
     staff_id = fields.Many2one('res.users', u'销售员')
     order_id = fields.Many2one('sell.order', u'源单号', copy=False)
     invoice_id = fields.Many2one('money.invoice', u'发票号', copy=False)
@@ -276,8 +268,6 @@ class sell_delivery(models.Model):
     debt = fields.Float(u'本次欠款', compute=_compute_all_amount, store=True, readonly=True, copy=False)
     total_debt = fields.Float(u'总欠款', compute=_compute_all_amount, store=True, readonly=True, copy=False)
     cost_line_ids = fields.One2many('cost.line', 'sell_id', u'销售费用', copy=False)
-    state = fields.Selection(SELL_DELIVERY_STATES, u'审核状态', default='draft',
-                             readonly=True, help=u"销售发货单的审核状态", select=True, copy=False)
     money_state = fields.Char(u'收款状态', compute=_get_sell_money_state,
                              help=u"销售发货单的收款状态", select=True, copy=False)
 
@@ -314,6 +304,7 @@ class sell_delivery(models.Model):
         # 发库单生成源单
         categ = self.env.ref('money.core_category_sale')
         source_id = self.env['money.invoice'].create({
+                            'move_id': self.sell_move_id.id,
                             'name': self.name,
                             'partner_id': self.partner_id.id,
                             'category_id': categ.id,
@@ -329,6 +320,7 @@ class sell_delivery(models.Model):
         if sum(cost_line.amount for cost_line in self.cost_line_ids) > 0:
             for line in self.cost_line_ids:
                 cost_id = self.env['money.invoice'].create({
+                            'move_id': self.sell_move_id.id,
                             'name': self.name,
                             'partner_id': line.partner_id.id,
                             'category_id': line.category_id.id,
@@ -342,38 +334,41 @@ class sell_delivery(models.Model):
         # 审核之后更新客户的应收余额
         self.env['money.invoice'].money_invoice_done()
         # 生成收款单
-        money_lines = []
-        source_lines = []
-        money_lines.append({
-            'bank_id': self.bank_account_id.id,
-            'amount': self.receipt,
-        })
-        source_lines.append({
-            'name': source_id.id,
-            'category_id': categ.id,
-            'date': source_id.date,
-            'amount': self.amount,
-            'reconciled': 0.0,
-            'to_reconcile': self.amount,
-            'this_reconcile': self.receipt,
-        })
+        if self.receipt:
+            money_lines = []
+            source_lines = []
+            money_lines.append({
+                'bank_id': self.bank_account_id.id,
+                'amount': self.receipt,
+            })
+            source_lines.append({
+                'name': source_id.id,
+                'category_id': categ.id,
+                'date': source_id.date,
+                'amount': self.amount,
+                'reconciled': 0.0,
+                'to_reconcile': self.amount,
+                'this_reconcile': self.receipt,
+            })
 
-        money_order = self.env['money.order'].create({
-                            'partner_id': self.partner_id.id,
-                            'date': fields.Date.context_today(self),
-                            'line_ids': [(0, 0, line) for line in money_lines],
-                            'source_ids': [(0, 0, line) for line in source_lines],
-                            'type': 'get',
-                            'amount': self.amount,
-                            'reconciled': self.receipt,
-                            'to_reconcile': self.debt,
-                            'state': 'draft',
-                        })
-        money_order.money_order_done()
-        # FIXME: 生成分拆单
-        self.env['sell.order'].sell_generate_delivery()
-        # FIXME: 没法将状态更新为 已审核
+            money_order = self.env['money.order'].create({
+                                'partner_id': self.partner_id.id,
+                                'date': fields.Date.context_today(self),
+                                'line_ids': [(0, 0, line) for line in money_lines],
+                                'source_ids': [(0, 0, line) for line in source_lines],
+                                'type': 'get',
+                                'amount': self.amount,
+                                'reconciled': self.receipt,
+                                'to_reconcile': self.debt,
+                                'state': 'draft',
+                            })
+            money_order.money_order_done()
+        # 调用wh.move中审核方法，更新审核人和审核状态
         self.sell_move_id.approve_order()
+        # 生成分拆单 FIXME:无法跳转到新生成的分单
+        if self.order_id:
+            return self.order_id.sell_generate_delivery()
+
         return True
 
 class sell_delivery_line(models.Model):
