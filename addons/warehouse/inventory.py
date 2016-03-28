@@ -26,7 +26,6 @@ class wh_inventory(models.Model):
     warehouse_id = fields.Many2one('warehouse', u'仓库')
     goods = fields.Char(u'产品')
     zero_inventory = fields.Boolean(u'零库存')
-    serial_numbe = fields.Boolean(u'序列号产品')
     out_id = fields.Many2one('wh.out', u'盘亏单据', copy=False)
     in_id = fields.Many2one('wh.in', u'盘盈单据', copy=False)
     state = fields.Selection(INVENTORY_STATE, u'状态', copy=False, default='draft')
