@@ -123,12 +123,7 @@ class other_money_order_line(models.Model):
     _description = u'其他收支单明细'
 
     other_money_id = fields.Many2one('other.money.order', string=u'其他收支')
-    category_id = fields.Many2one('core.category',u'类别')
+    category_id = fields.Many2one('core.category', u'类别', domain="[('type', '=', context.get('type'))]")
     source_id = fields.Many2one('money.invoice', string=u'源单')
     amount = fields.Float(string=u'金额')
     note = fields.Char(string=u'备注')
-    
-    @api.onchange('amount')
-    def _onchange_amount(self):
-        #TODO: 根据type分辨可下拉的是其他收入还是其他支出
-        return {'domain':{'category_id':[('type','in',('other_get','other_pay'))]}}

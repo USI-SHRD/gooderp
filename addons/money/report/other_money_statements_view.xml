@@ -9,10 +9,11 @@
                 <tree string="Other Money Partner Statements Report">
                 	<field name="date"/>
                     <field name="name"/>
+                    <field name="note"/>
                     <field name="type"/>
-                    <field name="bank_id"/>
-                    <field name="get"/>
-                    <field name="pay"/>
+                    <field name="category_id"/>
+                    <field name="get" sum="合计"/>
+                    <field name="pay" sum="合计"/>
                     <field name="partner_id"/>
                 </tree>
             </field>

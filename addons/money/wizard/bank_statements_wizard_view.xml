@@ -9,10 +9,11 @@
                 <form string="Bank Statements Report Wizard">
                     <group>
                         <group>
-				            <field name="from_date"/>
+                        	<field name="bank_id"/>
                         </group>
                         <group>
-                            <field name="end_date"/>
+                        	<field name="from_date"/>
+                            <field name="to_date"/>
                         </group>
                     </group>
                     <footer>
