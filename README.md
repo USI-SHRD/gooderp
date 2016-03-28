@@ -1,10 +1,10 @@
-[![Gitter](https://badges.gitter.im/osbzr/gooderp.svg)](https://gitter.im/osbzr/gooderp?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
-
-在线试用地址：http://gooderp.osbzr.net   用户名 admin 密码 good
-
+[在线试用](http://gooderp.osbzr.net/login?db=gooderp&login=admin&key=good)
 ======
 
 [![Join the chat at https://gitter.im/osbzr/gooderp](https://badges.gitter.im/osbzr/gooderp.svg)](https://gitter.im/osbzr/gooderp?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Build Status](https://travis-ci.org/osbzr/gooderp.svg?branch=master)](https://travis-ci.org/osbzr/gooderp)
+[![Coverage Status](https://coveralls.io/repos/github/osbzr/gooderp/badge.svg?branch=master)](https://coveralls.io/github/osbzr/gooderp?branch=master)
+[![Issue Count](https://codeclimate.com/github/osbzr/gooderp/badges/issue_count.svg)](https://codeclimate.com/github/osbzr/gooderp)
 
 开阖软件发起的开源ERP项目
 
