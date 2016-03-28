@@ -1,0 +1,7 @@
+engines:
+  csslint:
+    enabled: true
+  duplication:
+    enabled: false
+    config:
+      languages:python
