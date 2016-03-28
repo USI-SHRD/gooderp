@@ -304,6 +304,7 @@ class sell_delivery(models.Model):
         # 发库单生成源单
         categ = self.env.ref('money.core_category_sale')
         source_id = self.env['money.invoice'].create({
+                            'move_id': self.sell_move_id.id,
                             'name': self.name,
                             'partner_id': self.partner_id.id,
                             'category_id': categ.id,
@@ -319,6 +320,7 @@ class sell_delivery(models.Model):
         if sum(cost_line.amount for cost_line in self.cost_line_ids) > 0:
             for line in self.cost_line_ids:
                 cost_id = self.env['money.invoice'].create({
+                            'move_id': self.sell_move_id.id,
                             'name': self.name,
                             'partner_id': line.partner_id.id,
                             'category_id': line.category_id.id,

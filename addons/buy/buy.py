@@ -166,6 +166,7 @@ class buy_order(models.Model):
         receipt_id = self.env['buy.receipt'].create({
                             'partner_id': self.partner_id.id,
                             'date': self.planned_date,
+                            'type': 'receipt',
                             'order_id': self.id,
                             'line_in_ids': [(0, 0, line[0]) for line in receipt_line],
                             'origin': 'buy.receipt',
@@ -271,7 +272,23 @@ class buy_receipt(models.Model):
             elif self.amount == self.payment:
                 self.money_state = u'全部付款'
 
+    @api.one
+    @api.depends('state', 'amount', 'payment')
+    def _get_buy_return_state(self):
+        '''返回退款状态'''
+        if self.type == 'return':
+            if self.state == 'draft':
+                self.return_state = u'未退款'
+            else:
+                if self.payment == 0:
+                    self.return_state = u'未退款'
+                elif self.amount > self.payment:
+                    self.return_state = u'部分退款'
+                elif self.amount == self.payment:
+                    self.return_state = u'全部退款'
+
     buy_move_id = fields.Many2one('wh.move', u'入库单', required=True, ondelete='cascade')
+    type = fields.Selection([('receipt', u'入库'), ('return', u'退货')], u'类型', default=lambda self: self.env.context.get('type'))
     order_id = fields.Many2one('buy.order', u'源单号', copy=False)
     invoice_id = fields.Many2one('money.invoice', u'发票号', copy=False)
     date_due = fields.Date(u'到期日期', copy=False)
@@ -284,6 +301,8 @@ class buy_receipt(models.Model):
     cost_line_ids = fields.One2many('cost.line', 'buy_id', u'采购费用', copy=False)
     money_state = fields.Char(u'付款状态', compute=_get_buy_money_state,
                              help=u"采购入库单的付款状态", select=True, copy=False)
+    return_state = fields.Char(u'退款状态', compute=_get_buy_return_state,
+                             help=u"采购退货单的退款状态", select=True, copy=False)
 
     @api.one
     @api.onchange('discount_rate')
@@ -320,6 +339,7 @@ class buy_receipt(models.Model):
         # 入库单生成源单
         categ = self.env.ref('money.core_category_purchase')
         source_id = self.env['money.invoice'].create({
+                            'move_id': self.buy_move_id.id,
                             'name': self.name,
                             'partner_id': self.partner_id.id,
                             'category_id': categ.id,
@@ -335,6 +355,7 @@ class buy_receipt(models.Model):
         if sum(cost_line.amount for cost_line in self.cost_line_ids) > 0:
             for line in self.cost_line_ids:
                 cost_id = self.env['money.invoice'].create({
+                            'move_id': self.buy_move_id.id,
                             'name': self.name,
                             'partner_id': line.partner_id.id,
                             'category_id': line.category_id.id,
