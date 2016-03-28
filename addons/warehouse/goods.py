@@ -9,11 +9,10 @@ from openerp import api
 
 class goods(models.Model):
     _inherit = 'goods'
-    
-    default_wh = fields.Many2one('warehouse',u'默认库位')
+
+    default_wh = fields.Many2one('warehouse', u'默认库位')
 
     # 使用SQL来取得指定产品情况下的库存数量
-    @api.multi
     def get_stock_qty(self):
         for goods in self:
             self.env.cr.execute('''
@@ -33,12 +32,10 @@ class goods(models.Model):
 
             return self.env.cr.dictfetchall()
 
-    @api.multi
     def get_cost(self):
         # TODO 产品上需要一个字段来记录成本
         return 1
 
-    @api.multi
     def get_suggested_cost_by_warehouse(self, warehouse, qty):
         records, subtotal = self.get_matching_records(warehouse, qty, ignore_stock=True)
 
@@ -51,18 +48,15 @@ class goods(models.Model):
             cost = self.get_cost()
         return cost * qty, cost
 
-    @api.multi
     def is_using_matching(self):
         return True
 
-    @api.multi
     def is_using_batch(self):
         for goods in self:
             return goods.using_batch
 
         return False
 
-    @api.multi
     def get_matching_records(self, warehouse, qty, ignore_stock=False):
         matching_records = []
         for goods in self:
