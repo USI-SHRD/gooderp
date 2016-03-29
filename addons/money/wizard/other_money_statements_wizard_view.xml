@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <openerp>
     <data>
-        <!--其他收支明细表form-->
+        <!--其他收支明细表向导 form-->
     	<record id="other_money_statements_report_wizard_form" model="ir.ui.view">
             <field name="name">other.money.statements.report.wizard.form</field>
             <field name="model">other.money.statements.report.wizard</field>
@@ -24,9 +24,9 @@
             </field>
         </record>
 
-		<!-- 其他收支明细表 action -->
+		<!-- 其他收支明细表向导 action -->
 		<record id='other_money_statements_report_wizard_action' model='ir.actions.act_window'>
-            <field name='name'>其他收支明细表</field>
+            <field name='name'>其他收支明细表向导</field>
             <field name='res_model'>other.money.statements.report.wizard</field>
             <field name='view_type'>form</field>
             <field name='view_mode'>form</field>
@@ -34,9 +34,8 @@
             <field name='target'>new</field>
         </record>
 
-		<!-- 其他收支明细表 -->
-		<menuitem id="menu_money_report" name="报表" parent="menu_money_root" sequence="2"/>
-        <menuitem id="report_other_money_statements_action" action="other_money_statements_report_wizard_action" parent="menu_money_report" sequence="6"/>
+		<!-- 其他收支明细表向导 menu-->
+        <menuitem id="report_other_money_statements_action" name="其他收支明细表" action="other_money_statements_report_wizard_action" parent="menu_money_report" sequence="4"/>
 	</data>
 </openerp>
 	

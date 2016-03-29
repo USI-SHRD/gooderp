@@ -17,6 +17,7 @@ class other_money_statements_report(models.Model):
     note = fields.Char(string=u'备注', readonly=True)
 
     def init(self, cr):
+        # select other_money_order_line、other_money_order
         tools.drop_view_if_exists(cr, 'other_money_statements_report')
         cr.execute("""
             CREATE or REPLACE VIEW other_money_statements_report AS (
